@@ -1,6 +1,7 @@
 package version
 
 import (
+	"errors"
 	"io"
 	"strings"
 	"time"
@@ -76,13 +77,13 @@ func (vi *Info) Set(langID uint16, key string, value string) error {
 		vi.lt = make(langTable)
 	}
 	if key == "" {
-		return newErrInvalidString(key, errEmptyKey)
+		return errors.New(errEmptyKey)
 	}
 	if strings.ContainsRune(key, 0) {
-		return newErrInvalidString(key, errKeyContainsNUL)
+		return errors.New(errKeyContainsNUL)
 	}
 	if strings.ContainsRune(value, 0) {
-		return newErrInvalidString(value, errValueContainsNUL)
+		return errors.New(errValueContainsNUL)
 	}
 	st, ok := vi.lt[langID]
 	if !ok {
@@ -120,7 +121,7 @@ func (vi *Info) SplitTranslations() map[uint16]*Info {
 
 // SetProductVersion sets the product version, ensuring this is the only one in the structure.
 //
-// This should be called after json.Unmarshall to override the version.
+// This should be called after json.Unmarshal to override the version.
 func (vi *Info) SetProductVersion(productVersion string) {
 	vi.ProductVersion = versionStringToArray(productVersion)
 	if len(vi.lt) == 0 {
@@ -134,7 +135,7 @@ func (vi *Info) SetProductVersion(productVersion string) {
 
 // SetFileVersion sets the file version, ensuring this is the only one in the structure.
 //
-// This should be called after json.Unmarshall to override the version.
+// This should be called after json.Unmarshal to override the version.
 func (vi *Info) SetFileVersion(fileVersion string) {
 	vi.FileVersion = versionStringToArray(fileVersion)
 	if len(vi.lt) == 0 {

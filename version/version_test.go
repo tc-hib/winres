@@ -364,39 +364,33 @@ func TestInfo_Bytes_OtherType(t *testing.T) {
 
 func TestInfo_Set(t *testing.T) {
 	var (
-		key    string
-		value  string
-		err    error
-		vi     Info
-		strErr *ErrInvalidString
-		ok     bool
+		key   string
+		value string
+		err   error
+		vi    Info
 	)
 
 	key, value = "", "Hi"
 	err = vi.Set(0x409, key, value)
-	strErr, ok = err.(*ErrInvalidString)
-	if !ok || strErr.Error() != errEmptyKey || strErr.Arg() != key {
+	if err == nil || err.Error() != errEmptyKey {
 		t.Fail()
 	}
 
 	key, value = "Hey\x00", "Hi"
 	err = vi.Set(0x409, key, value)
-	strErr, ok = err.(*ErrInvalidString)
-	if !ok || strErr.Error() != errKeyContainsNUL || strErr.Arg() != key {
+	if err == nil || err.Error() != errKeyContainsNUL {
 		t.Fail()
 	}
 
 	key, value = "Hey", "Hi\x00"
 	err = vi.Set(0x409, key, value)
-	strErr, ok = err.(*ErrInvalidString)
-	if !ok || strErr.Error() != errValueContainsNUL || strErr.Arg() != value {
+	if err == nil || err.Error() != errValueContainsNUL {
 		t.Fail()
 	}
 
 	key, value = "Hey", "\x00Hi"
 	err = vi.Set(0x409, key, value)
-	strErr, ok = err.(*ErrInvalidString)
-	if !ok || strErr.Error() != errValueContainsNUL || strErr.Arg() != value {
+	if err == nil || err.Error() != errValueContainsNUL {
 		t.Fail()
 	}
 
