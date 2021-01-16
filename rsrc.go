@@ -11,9 +11,6 @@ const (
 	// Visual C++ pads resource data to 8 bytes.
 	// 4 bytes is a minimum.
 	dataAlignment = 8
-	// Visual C++ pads names to align the data index to 16 bytes
-	// Is this useless? Go's linker does not align sections that much anyway.
-	indexAlignment = 16
 )
 
 // state is a temporary state used during the execution of ResourceSet.write()
@@ -37,15 +34,15 @@ func (rs *ResourceSet) write(w io.Writer) ([]int, error) {
 	if err := rs.writeResDirs(w, s); err != nil {
 		return nil, err
 	}
-	// names will be inserted between the last directory level and the data index
-	s.offset += len(s.namesData) * 2
 	if err := rs.writeLangDirs(w, s); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(w, binary.LittleEndian, s.namesData); err != nil {
+	// names will be inserted between the last directory level (data index) and actual data
+	s.offset += len(s.namesData) * 2
+	if err := rs.writeDataIndex(w, s); err != nil {
 		return nil, err
 	}
-	if err := rs.writeDataIndex(w, s); err != nil {
+	if err := binary.Write(w, binary.LittleEndian, s.namesData); err != nil {
 		return nil, err
 	}
 	if err := rs.writeData(w, s); err != nil {
@@ -112,10 +109,9 @@ func (rs *ResourceSet) prepare() *state {
 		offset += (len(u) + 1) * 2
 	}
 
-	// Names must be padded to align the resource data index.
-	// https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#resource-directory-string
+	// Names must be padded to align the resource data.
 	sz := len(s.namesData) * 2
-	s.namesData = append(s.namesData, make([]uint16, (alignDataIndex(sz)-sz)/2)...)
+	s.namesData = append(s.namesData, make([]uint16, (alignData(sz)-sz)/2)...)
 	return s
 }
 
@@ -202,7 +198,7 @@ func (rs *ResourceSet) fullSize() int {
 	for _, te := range rs.types {
 		for _, re := range te.resources {
 			for _, de := range re.data {
-				sz += sizeOfDataEntry + de.paddedDataSize()
+				sz += de.paddedDataSize()
 			}
 		}
 	}
@@ -215,7 +211,7 @@ func (rs *ResourceSet) dirSize() int {
 	for _, te := range rs.types {
 		sz += te.size()
 		for _, re := range te.resources {
-			sz += re.size()
+			sz += re.size() + len(re.data)*sizeOfDataEntry
 		}
 	}
 	return sz
@@ -328,13 +324,13 @@ type dataEntry struct {
 	data []byte
 }
 
-func alignDataIndex(offset int) int {
-	return (offset + indexAlignment - 1) &^ (indexAlignment - 1)
+func alignData(offset int) int {
+	return (offset + dataAlignment - 1) &^ (dataAlignment - 1)
 }
 
 // paddedDataSize returns the room taken by data, including some padding at the end.
 func (de *dataEntry) paddedDataSize() int {
-	return (len(de.data) + dataAlignment - 1) &^ (dataAlignment - 1)
+	return alignData(len(de.data))
 }
 
 func (de *dataEntry) write(w io.Writer, s *state) error {
