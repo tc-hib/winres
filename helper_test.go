@@ -11,6 +11,8 @@ import (
 	"testing"
 )
 
+const testDataDir = "testdata"
+
 func checkResourceSet(t *testing.T, rs *ResourceSet, arch Arch) {
 	buf := &bytes.Buffer{}
 	if err := rs.WriteObject(buf, arch); err != nil {
@@ -19,8 +21,12 @@ func checkResourceSet(t *testing.T, rs *ResourceSet, arch Arch) {
 	checkBinary(t, buf.Bytes())
 }
 
+func golden(t *testing.T) string {
+	return filepath.Join(testDataDir, t.Name()+".golden")
+}
+
 func checkBinary(t *testing.T, data []byte) {
-	refFile := filepath.Join("testdata", t.Name()+".golden")
+	refFile := golden(t)
 	ref, _ := ioutil.ReadFile(refFile)
 
 	if !bytes.Equal(ref, data) {
@@ -36,7 +42,7 @@ func checkBinary(t *testing.T, data []byte) {
 }
 
 func loadPNGFileAsIcon(t *testing.T, name string, sizes []int) *Icon {
-	f, err := os.Open(filepath.Join("testdata", name))
+	f, err := os.Open(filepath.Join(testDataDir, name))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +58,7 @@ func loadPNGFileAsIcon(t *testing.T, name string, sizes []int) *Icon {
 }
 
 func loadPNGFileAsCursor(t *testing.T, name string, spotX, spotY uint16) *Cursor {
-	f, err := os.Open(filepath.Join("testdata", name))
+	f, err := os.Open(filepath.Join(testDataDir, name))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +74,7 @@ func loadPNGFileAsCursor(t *testing.T, name string, spotX, spotY uint16) *Cursor
 }
 
 func loadICOFile(t *testing.T, name string) *Icon {
-	f, err := os.Open(filepath.Join("testdata", name))
+	f, err := os.Open(filepath.Join(testDataDir, name))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +86,7 @@ func loadICOFile(t *testing.T, name string) *Icon {
 }
 
 func loadCURFile(t *testing.T, name string) *Cursor {
-	f, err := os.Open(filepath.Join("testdata", name))
+	f, err := os.Open(filepath.Join(testDataDir, name))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +98,7 @@ func loadCURFile(t *testing.T, name string) *Cursor {
 }
 
 func loadImage(t *testing.T, name string) image.Image {
-	f, err := os.Open(filepath.Join("testdata", name))
+	f, err := os.Open(filepath.Join(testDataDir, name))
 	if err != nil {
 		t.Fatal(err)
 	}

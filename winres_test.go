@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/tc-hib/winres/version"
 	"io/ioutil"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -110,7 +111,7 @@ func TestWinRes2(t *testing.T) {
 
 	r.Set(RT_MANIFEST, ID(1), LCIDDefault, []byte(manifest1))
 
-	j, _ := ioutil.ReadFile("testdata/vi.json")
+	j, _ := ioutil.ReadFile(filepath.Join(testDataDir, "vi.json"))
 	v := version.Info{}
 	json.Unmarshal(j, &v)
 	r.SetVersionInfo(v)

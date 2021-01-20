@@ -13,7 +13,7 @@ import (
 )
 
 func TestLoadICO(t *testing.T) {
-	f, err := os.Open(filepath.Join("testdata", "icon.ico"))
+	f, err := os.Open(filepath.Join(testDataDir, "icon.ico"))
 	if err != nil {
 		t.Fatal("missing test data")
 	}
@@ -174,7 +174,7 @@ func TestLoadICO_ErrEOF2(t *testing.T) {
 }
 
 func TestLoadICO_ErrImageOffset(t *testing.T) {
-	temp, err := ioutil.ReadFile(filepath.Join("testdata", "icon.ico"))
+	temp, err := ioutil.ReadFile(filepath.Join(testDataDir, "icon.ico"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +187,7 @@ func TestLoadICO_ErrImageOffset(t *testing.T) {
 }
 
 func TestLoadCUR_ErrNotICO(t *testing.T) {
-	temp, err := ioutil.ReadFile(filepath.Join("testdata", "icon.ico"))
+	temp, err := ioutil.ReadFile(filepath.Join(testDataDir, "icon.ico"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +207,7 @@ func TestLoadCUR_ErrNotICO(t *testing.T) {
 }
 
 func TestLoadICO_ErrSeek(t *testing.T) {
-	data, err := ioutil.ReadFile(filepath.Join("testdata", "icon.ico"))
+	data, err := ioutil.ReadFile(filepath.Join(testDataDir, "icon.ico"))
 	if err != nil {
 		t.Fatal("missing test data")
 	}
@@ -245,7 +245,7 @@ func TestLoadICO_ImageLengthLimit(t *testing.T) {
 }
 
 func TestIcon_SaveICO(t *testing.T) {
-	data, err := ioutil.ReadFile(filepath.Join("testdata", "icon.ico"))
+	data, err := ioutil.ReadFile(filepath.Join(testDataDir, "icon.ico"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +265,7 @@ func TestIcon_SaveICO(t *testing.T) {
 }
 
 func TestIcon_SaveICO_ErrWrite(t *testing.T) {
-	data, err := ioutil.ReadFile(filepath.Join("testdata", "icon.ico"))
+	data, err := ioutil.ReadFile(filepath.Join(testDataDir, "icon.ico"))
 	if err != nil {
 		t.Fatal(err)
 	}
