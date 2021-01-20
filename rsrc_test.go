@@ -2,6 +2,7 @@ package winres
 
 import (
 	"bytes"
+	"io"
 	"testing"
 )
 
@@ -92,5 +93,211 @@ func Test_dataEntry_writeData(t *testing.T) {
 		if err == nil || err.Error() != errWrite+" -1" {
 			t.Fail()
 		}
+	}
+}
+
+func TestResourceSet_read1(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read(loadBinary(t, "rsrc1.bin"), 0xE6B000, ID(0))
+	if err != nil || rs.lastIconID != 12 || rs.lastCursorID != 5 {
+		t.Fatal(err)
+	}
+	buf := &bytes.Buffer{}
+	rs.write(buf)
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_read_RT_ICON(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read(loadBinary(t, "rsrc1.bin"), 0xE6B000, RT_ICON)
+	if err != nil || rs.lastIconID != 12 || rs.lastCursorID != 0 {
+		t.Fatal(err)
+	}
+	buf := &bytes.Buffer{}
+	rs.write(buf)
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_read_RT_GROUP_ICON(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read(loadBinary(t, "rsrc1.bin"), 0xE6B000, RT_GROUP_ICON)
+	if err != nil || rs.lastIconID != 12 || rs.lastCursorID != 0 {
+		t.Fatal(err)
+	}
+	buf := &bytes.Buffer{}
+	rs.write(buf)
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_read_RT_CURSOR(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read(loadBinary(t, "rsrc1.bin"), 0xE6B000, RT_CURSOR)
+	if err != nil || rs.lastIconID != 0 || rs.lastCursorID != 5 {
+		t.Fatal(err)
+	}
+	buf := &bytes.Buffer{}
+	rs.write(buf)
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_read_RT_GROUP_CURSOR(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read(loadBinary(t, "rsrc1.bin"), 0xE6B000, RT_GROUP_CURSOR)
+	if err != nil || rs.lastIconID != 0 || rs.lastCursorID != 5 {
+		t.Fatal(err)
+	}
+	buf := &bytes.Buffer{}
+	rs.write(buf)
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_read_PNG(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read(loadBinary(t, "rsrc1.bin"), 0xE6B000, Name("PNG"))
+	if err != nil || rs.lastIconID != 0 || rs.lastCursorID != 0 {
+		t.Fatal(err)
+	}
+	buf := &bytes.Buffer{}
+	rs.write(buf)
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_read_EOF1(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read([]byte{}, 0x42, ID(0))
+	if err != io.ErrUnexpectedEOF {
+		t.Fail()
+	}
+}
+
+func TestResourceSet_read_EOF2(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read([]byte{0xC: 1, 0x16: 0}, 0x42, ID(0))
+	if err != io.ErrUnexpectedEOF {
+		t.Fail()
+	}
+}
+
+func TestResourceSet_read_ErrNode(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read([]byte{0xC: 1, 0x13: 0x80, 0x17: 0}, 0x42, ID(0))
+	if err == nil || err.Error() != errInvalidResDir {
+		t.Fail()
+	}
+}
+
+func TestResourceSet_read_ErrLeaf(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read([]byte{0xC: 1, 0x17: 0x80}, 0x42, ID(0))
+	if err == nil || err.Error() != errInvalidResDir {
+		t.Fail()
+	}
+}
+
+func TestResourceSet_read_ErrLeafName(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read([]byte{
+		0xE:  1,
+		0x14: 0x18,
+		0x17: 0x80,
+		0x26: 1,
+		0x2C: 0x30,
+		0x2F: 0x80,
+		0x3E: 1,
+		0x43: 0x80,
+		0x44: 0x48,
+		0x47: 0,
+	}, 0x42, ID(0))
+	if err == nil || err.Error() != errInvalidResDir {
+		t.Fail()
+	}
+}
+
+func TestResourceSet_read_ErrEOF3(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read([]byte{
+		0xC:  1,
+		0x10: 0xFF,
+		0x13: 0x80,
+		0x14: 0x18,
+		0x17: 0x80,
+		0x26: 1,
+		0x2C: 0x30,
+		0x2F: 0x80,
+		0x3E: 1,
+		0x44: 0x48,
+		0x47: 0,
+	}, 0x42, ID(0))
+	if err != io.ErrUnexpectedEOF {
+		t.Fail()
+	}
+}
+
+func TestResourceSet_read_ErrEOF4(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read([]byte{
+		0xC:  1,
+		0x10: 0x44,
+		0x13: 0x80,
+		0x14: 0x18,
+		0x17: 0x80,
+		0x26: 1,
+		0x2C: 0x30,
+		0x2F: 0x80,
+		0x3E: 1,
+		0x44: 0x48,
+		0x47: 0,
+	}, 0x42, ID(0))
+	if err != io.ErrUnexpectedEOF {
+		t.Fail()
+	}
+}
+
+func TestResourceSet_read_ErrEOF5(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read([]byte{
+		0xE:  1,
+		0x10: 0x01,
+		0x14: 0x18,
+		0x17: 0x80,
+		0x26: 1,
+		0x2C: 0x30,
+		0x2F: 0x80,
+		0x3E: 1,
+		0x44: 0x48,
+		0x47: 0,
+	}, 0x42, ID(0))
+	if err != io.ErrUnexpectedEOF {
+		t.Fail()
+	}
+}
+
+func TestResourceSet_read_DataOutOfBounds1(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read([]byte{
+		0xE:  1,
+		0x10: 1,
+		0x14: 0x18,
+		0x17: 0x80,
+		0x26: 1,
+		0x2C: 0x30,
+		0x2F: 0x80,
+		0x3E: 1,
+		0x44: 0x48,
+		0x48: 0x58,
+		0x49: 0x10,
+		0x4C: 0x10,
+		0x5D: 0,
+	}, 0x1000, ID(0))
+	if err == nil || err.Error() != errDataEntryOutOfBounds {
+		t.Fail()
+	}
+}
+
+func TestResourceSet_read_DataOutOfBounds2(t *testing.T) {
+	rs := ResourceSet{}
+	err := rs.read(loadBinary(t, "rsrc1.bin"), 0x42, ID(0))
+	if err == nil || err.Error() != errDataEntryOutOfBounds {
+		t.Fail()
 	}
 }

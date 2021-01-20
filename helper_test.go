@@ -41,6 +41,14 @@ func checkBinary(t *testing.T, data []byte) {
 	}
 }
 
+func loadBinary(t *testing.T, filename string) []byte {
+	data, err := ioutil.ReadFile(filepath.Join(testDataDir, filename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
 func loadPNGFileAsIcon(t *testing.T, name string, sizes []int) *Icon {
 	f, err := os.Open(filepath.Join(testDataDir, name))
 	if err != nil {

@@ -18,4 +18,7 @@ const (
 	errImageTooBig            = "image size too big, must fit in 256x256"
 	errNotCUR                 = "not a valid CUR file"
 	errUnknownImageFormat     = "unknown image format"
+
+	errInvalidResDir        = "invalid resource directory"
+	errDataEntryOutOfBounds = "data entry out of bounds"
 )

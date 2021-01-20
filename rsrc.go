@@ -1,7 +1,9 @@
 package winres
 
 import (
+	"bytes"
 	"encoding/binary"
+	"errors"
 	"io"
 	"sort"
 	"unicode/utf16"
@@ -422,4 +424,132 @@ func writeDataEntry(w io.Writer, offset int, dataSize int) error {
 		Size:     uint32(dataSize),
 		Codepage: uint32(0), // String tables being encoded in utf-16, this field is useless. Visual studio sets it to zero.
 	})
+}
+
+// Reading functions:
+
+func (rs *ResourceSet) read(section []byte, baseAddress uint32, typeID Identifier) error {
+	r := bytes.NewReader(section)
+	return dirEntry{}.walk(r, func(typeEntry dirEntry) error {
+		if typeID != ID(0) &&
+			typeEntry.ident != typeID &&
+			(typeEntry.ident != RT_ICON || typeID != RT_GROUP_ICON) &&
+			(typeEntry.ident != RT_CURSOR || typeID != RT_GROUP_CURSOR) {
+			return nil
+		}
+		return typeEntry.walk(r, func(resourceEntry dirEntry) error {
+			resourceEntry.leaf = true
+			return resourceEntry.walk(r, func(langEntry dirEntry) error {
+				data, err := langEntry.readData(r, baseAddress)
+				if err != nil {
+					return err
+				}
+				return rs.Set(typeEntry.ident, resourceEntry.ident, uint16(langEntry.ident.(ID)), data)
+			})
+		})
+	})
+}
+
+type dirEntry struct {
+	path   string
+	ident  Identifier
+	offset int64
+	leaf   bool
+}
+
+func (de dirEntry) walk(section *bytes.Reader, fn func(dirEntry) error) error {
+	entries, err := de.readDirTable(section)
+	if err != nil {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+		return err
+	}
+
+	for _, entry := range entries {
+		err = fn(entry)
+		if err != nil {
+			if err == io.EOF {
+				err = io.ErrUnexpectedEOF
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+func (de dirEntry) readData(section *bytes.Reader, baseAddress uint32) ([]byte, error) {
+	section.Seek(de.offset, io.SeekStart)
+
+	entry := resourceDataEntry{}
+	err := binary.Read(section, binary.LittleEndian, &entry)
+	if err != nil {
+		return nil, err
+	}
+
+	offset := int64(entry.DataRVA) - int64(baseAddress)
+	if offset < 0 || offset+int64(entry.Size) > section.Size() {
+		return nil, errors.New(errDataEntryOutOfBounds)
+	}
+
+	data := make([]byte, entry.Size)
+	section.Seek(offset, io.SeekStart)
+	section.Read(data)
+
+	return data, nil
+}
+
+func (de dirEntry) readDirTable(section *bytes.Reader) ([]dirEntry, error) {
+	section.Seek(de.offset, io.SeekStart)
+
+	table := resourceDirectoryTable{}
+	err := binary.Read(section, binary.LittleEndian, &table)
+	if err != nil {
+		return nil, err
+	}
+
+	dir := make([]resourceDirectoryIDEntry, table.NumberOfNameEntries+table.NumberOfIDEntries)
+	err = binary.Read(section, binary.LittleEndian, &dir)
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make([]dirEntry, len(dir))
+	for i := range dir {
+		if de.leaf != (dir[i].Offset&subdirectoryOffset == 0) {
+			return nil, errors.New(errInvalidResDir)
+		}
+		if de.leaf && dir[i].ID&nameOffset != 0 {
+			return nil, errors.New(errInvalidResDir)
+		}
+		entries[i].offset = int64(dir[i].Offset &^ subdirectoryOffset)
+		if dir[i].ID&nameOffset == 0 {
+			entries[i].ident = ID(dir[i].ID)
+		} else {
+			entries[i].ident, err = readName(section, dir[i].ID&^nameOffset)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return entries, nil
+}
+
+func readName(section *bytes.Reader, offset uint32) (Name, error) {
+	section.Seek(int64(offset), io.SeekStart)
+
+	var length uint16
+	err := binary.Read(section, binary.LittleEndian, &length)
+	if err != nil {
+		return "", err
+	}
+
+	b := make([]uint16, length)
+	err = binary.Read(section, binary.LittleEndian, b)
+	if err != nil {
+		return "", err
+	}
+
+	return Name(utf16.Decode(b)), nil
 }
