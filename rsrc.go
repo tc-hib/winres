@@ -242,6 +242,10 @@ func (te *typeEntry) size() int {
 // order orders ids and names following the specification, and saves them in orderedKeys.
 // It calls resourceEntry.order() too, for each resource entry it owns.
 func (te *typeEntry) order() {
+	if te.orderedKeys != nil {
+		return
+	}
+
 	te.orderedKeys = make([]Identifier, 0, len(te.resources))
 	for ident, re := range te.resources {
 		te.orderedKeys = append(te.orderedKeys, ident)
@@ -294,6 +298,10 @@ func (re *resourceEntry) size() int {
 
 // order orders LCIDs and saves them in orderedKeys.
 func (re *resourceEntry) order() {
+	if re.orderedKeys != nil {
+		return
+	}
+
 	re.orderedKeys = make([]ID, 0, len(re.data))
 	for id := range re.data {
 		re.orderedKeys = append(re.orderedKeys, id)
@@ -352,6 +360,8 @@ func (de *dataEntry) writeData(w io.Writer) error {
 	_, err = w.Write(b[:de.paddedDataSize()-size])
 	return err
 }
+
+// Binary format of the directory :
 
 // https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#the-rsrc-section
 // https://docs.microsoft.com/en-us/previous-versions/ms809762(v=msdn.10)#pe-file-resources

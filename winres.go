@@ -1,8 +1,9 @@
 package winres
 
 import (
-	"github.com/tc-hib/winres/version"
 	"io"
+
+	"github.com/tc-hib/winres/version"
 )
 
 // Standard type IDs from  https://docs.microsoft.com/en-us/windows/win32/menurc/resource-types
@@ -35,7 +36,8 @@ const (
 )
 
 // Arch defines the target architecture.
-// Its value can be used as a target suffix too: "rsrc_windows_" + string(arch) + ".syso"
+// Its value can be used as a target suffix too:
+// "rsrc_windows_"+string(arch)+".syso"
 type Arch string
 
 const (
@@ -79,18 +81,22 @@ func (rs *ResourceSet) Set(typeID, resID Identifier, langID uint16, data []byte)
 		return err
 	}
 
-	rs.getEntry(typeID, resID).data[ID(langID)] = &dataEntry{data}
+	rs.set(typeID, resID, langID, data)
+
 	return nil
 }
 
-// SetVersionInfo set the VersionInfo structure.
+// SetVersionInfo sets the VersionInfo structure.
+//
+// This what Windows displays in the Details tab of file properties.
 func (rs *ResourceSet) SetVersionInfo(vi version.Info) {
 	for langID, res := range vi.SplitTranslations() {
 		rs.Set(RT_VERSION, ID(1), langID, res.Bytes())
 	}
 }
 
-// SetManifest is a simplified way to embed a typical application manifest.
+// SetManifest is a simplified way to embed a typical application manifest,
+// without writing xml directly.
 func (rs *ResourceSet) SetManifest(manifest AppManifest) {
 	rs.Set(RT_MANIFEST, ID(1), LCIDDefault, makeManifest(manifest))
 }
@@ -100,7 +106,7 @@ func (rs *ResourceSet) WriteObject(w io.Writer, arch Arch) error {
 	return writeObject(w, rs, arch)
 }
 
-// Count returns the number of resources declared in the resource set.
+// Count returns the number of resources in the set.
 func (rs *ResourceSet) Count() int {
 	return rs.numDataEntries()
 }
@@ -109,8 +115,7 @@ func (rs *ResourceSet) Count() int {
 //
 // It takes a callback function that takes same parameters as Set and returns a bool that should be true to continue, false to stop.
 //
-// If you add resources during the walk, they will be ignored.
-// You should never call WriteObject during the walk.
+// If you modify the set during a call to Walk, behaviour is undefined.
 func (rs *ResourceSet) Walk(f func(typeID, resID Identifier, langID uint16, data []byte) bool) {
 	s := &state{}
 	rs.order(s)
@@ -131,8 +136,7 @@ func (rs *ResourceSet) Walk(f func(typeID, resID Identifier, langID uint16, data
 //
 // It takes a callback function that takes same parameters as Set and returns a bool that should be true to continue, false to stop.
 //
-// If you add resources during the walk, they will be ignored.
-// You should never call WriteObject during the walk.
+// If you modify the set during a call to Walk, behaviour is undefined.
 func (rs *ResourceSet) WalkType(typeID Identifier, f func(resID Identifier, langID uint16, data []byte) bool) {
 	te := rs.types[typeID]
 	if te == nil {
@@ -150,7 +154,8 @@ func (rs *ResourceSet) WalkType(typeID Identifier, f func(resID Identifier, lang
 }
 
 // Get returns resource data.
-// Returns nil if the resource (translated resource) was not found.
+//
+// Returns nil if the resource was not found.
 func (rs *ResourceSet) Get(typeID, resID Identifier, langID uint16) []byte {
 	te := rs.types[typeID]
 	if te == nil {
@@ -170,11 +175,18 @@ func (rs *ResourceSet) Get(typeID, resID Identifier, langID uint16) []byte {
 	return de.data
 }
 
-// getEntry creates, if necessary, and returns a resource entry.
-func (rs *ResourceSet) getEntry(typeID Identifier, resID Identifier) *resourceEntry {
+// set is the only function that may create/modify entries in the ResourceSet
+func (rs *ResourceSet) set(typeID Identifier, resID Identifier, langID uint16, data []byte) {
 	if rs.types == nil {
 		rs.types = make(map[Identifier]*typeEntry)
 	}
+
+	if data == nil {
+		// Like UpdateResource, delete resources by passing nil
+		rs.delete(typeID, resID, langID)
+		return
+	}
+
 	te := rs.types[typeID]
 	if te == nil {
 		te = &typeEntry{
@@ -182,10 +194,88 @@ func (rs *ResourceSet) getEntry(typeID Identifier, resID Identifier) *resourceEn
 		}
 		rs.types[typeID] = te
 	}
-	if te.resources[resID] == nil {
-		te.resources[resID] = &resourceEntry{
+
+	re := te.resources[resID]
+	if re == nil {
+		te.orderedKeys = nil
+		re = &resourceEntry{
 			data: make(map[ID]*dataEntry),
 		}
+		te.resources[resID] = re
 	}
-	return te.resources[resID]
+
+	if typeID == RT_ICON {
+		if id, ok := resID.(ID); ok && rs.lastIconID < uint16(id) {
+			rs.lastIconID = uint16(id)
+		}
+	} else if typeID == RT_CURSOR {
+		if id, ok := resID.(ID); ok && rs.lastCursorID < uint16(id) {
+			rs.lastCursorID = uint16(id)
+		}
+	}
+
+	de := re.data[ID(langID)]
+	if de == nil {
+		re.orderedKeys = nil
+		de = &dataEntry{}
+		re.data[ID(langID)] = de
+	}
+
+	de.data = data
+}
+
+func (rs *ResourceSet) delete(typeID Identifier, resID Identifier, langID uint16) {
+	te := rs.types[typeID]
+	if te == nil {
+		return
+	}
+
+	re := te.resources[resID]
+	if re == nil {
+		return
+	}
+
+	delete(re.data, ID(langID))
+	re.orderedKeys = nil
+
+	if len(re.data) > 0 {
+		return
+	}
+
+	delete(te.resources, resID)
+	te.orderedKeys = nil
+
+	if len(te.resources) > 0 {
+		return
+	}
+
+	delete(rs.types, typeID)
+}
+
+// firstLang finds the first language ID of a resource.
+//
+// When an icon image has several languages, Windows takes the first one
+// in the resource directory, even if it's not the same as the group's language,
+// or the user's language.
+//
+// UpdateResource sorts resources just like winres does, so we may assume
+// the first language in the file should be the lowest LCID.
+func (rs *ResourceSet) firstLang(typeID, resID Identifier) uint16 {
+	te := rs.types[typeID]
+	if te == nil {
+		return 0
+	}
+
+	re := te.resources[resID]
+	if re == nil {
+		return 0
+	}
+
+	if len(re.data) == 0 {
+		return 0
+	}
+
+	re.order()
+
+	return uint16(re.orderedKeys[0])
 }

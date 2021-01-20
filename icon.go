@@ -16,9 +16,7 @@ import (
 // Icon describes a Windows icon.
 //
 // This structure must only be created by constructors:
-//  - NewIconFromImages
-//  - NewIconFromResizedImage
-//  - LoadICO
+// NewIconFromImages, NewIconFromResizedImage, LoadICO
 type Icon struct {
 	images []iconImage
 }
@@ -40,7 +38,7 @@ func NewIconFromImages(images []image.Image) (*Icon, error) {
 	return &icon, nil
 }
 
-// NewIconFromResizedImage makes an icon from a single image.Image by resizing it.
+// NewIconFromResizedImage makes an icon from a single Image by resizing it.
 //
 // If sizes is nil, the icon will be resized to: 256px, 64px, 48px, 32px, 16px.
 func NewIconFromResizedImage(img image.Image, sizes []int) (*Icon, error) {
@@ -145,7 +143,7 @@ func (icon *Icon) SaveICO(ico io.Writer) error {
 //
 // The first icon will be the application's icon, as shown in Windows Explorer.
 // That means:
-//  1. First name in case-sensitive ascending order
+//  1. First name in case-sensitive ascending order, or else...
 //  2. First ID in ascending order
 //
 func (rs *ResourceSet) SetIcon(resID Identifier, icon *Icon) error {
@@ -156,7 +154,7 @@ func (rs *ResourceSet) SetIcon(resID Identifier, icon *Icon) error {
 //
 // The first icon will be the application's icon, as shown in Windows Explorer.
 // That means:
-//  1. First name in case-sensitive ascending order
+//  1. First name in case-sensitive ascending order, or else...
 //  2. First ID in ascending order
 //
 func (rs *ResourceSet) SetIconTranslation(resID Identifier, langID uint16, icon *Icon) error {
@@ -169,13 +167,14 @@ func (rs *ResourceSet) SetIconTranslation(resID Identifier, langID uint16, icon 
 	icon.order()
 
 	for _, img := range icon.images {
-		rs.lastIconID++
+		id := rs.lastIconID + 1
+
 		binary.Write(b, binary.LittleEndian, iconResDirEntry{
 			iconInfo: img.info,
-			Id:       rs.lastIconID,
+			Id:       id,
 		})
 
-		if err := rs.Set(RT_ICON, ID(rs.lastIconID), langID, img.image); err != nil {
+		if err := rs.Set(RT_ICON, ID(id), LCIDNeutral, img.image); err != nil {
 			return err
 		}
 	}
@@ -184,7 +183,7 @@ func (rs *ResourceSet) SetIconTranslation(resID Identifier, langID uint16, icon 
 
 // GetIcon extracts an icon from a resource set.
 func (rs *ResourceSet) GetIcon(resID Identifier) (*Icon, error) {
-	return rs.GetIconTranslation(resID, LCIDNeutral)
+	return rs.GetIconTranslation(resID, rs.firstLang(RT_GROUP_ICON, resID))
 }
 
 // GetIconTranslation extracts an icon from a specific language of the resource set.
@@ -208,7 +207,7 @@ func (rs *ResourceSet) GetIconTranslation(resID Identifier, langID uint16) (*Ico
 		if err != nil {
 			return nil, errors.New(errInvalidGroup)
 		}
-		img := rs.Get(RT_ICON, ID(entry.Id), langID)
+		img := rs.Get(RT_ICON, ID(entry.Id), rs.firstLang(RT_ICON, ID(entry.Id)))
 		if img == nil {
 			return nil, errors.New(errIconMissing)
 		}

@@ -14,9 +14,7 @@ import (
 // Cursor describes a mouse cursor.
 //
 // This structure must only be created by constructors:
-//  - NewCursorFromImage
-//  - NewCursorFromPNGFiles
-//  - LoadCUR
+// NewCursorFromImages, LoadCUR
 type Cursor struct {
 	images []cursorImage
 }
@@ -163,13 +161,14 @@ func (rs *ResourceSet) SetCursorTranslation(resID Identifier, langID uint16, cur
 
 	cursor.order()
 	for _, img := range cursor.images {
-		rs.lastCursorID++
+		id := rs.lastCursorID + 1
+
 		binary.Write(b, binary.LittleEndian, cursorResDirEntry{
 			cursorInfo: img.info,
-			Id:         rs.lastCursorID,
+			Id:         id,
 		})
 
-		if err := rs.Set(RT_CURSOR, ID(rs.lastCursorID), langID, img.resData()); err != nil {
+		if err := rs.Set(RT_CURSOR, ID(id), LCIDNeutral, img.resData()); err != nil {
 			return err
 		}
 	}
@@ -178,7 +177,7 @@ func (rs *ResourceSet) SetCursorTranslation(resID Identifier, langID uint16, cur
 
 // GetCursor extracts a cursor from a resource set.
 func (rs *ResourceSet) GetCursor(resID Identifier) (*Cursor, error) {
-	return rs.GetCursorTranslation(resID, LCIDNeutral)
+	return rs.GetCursorTranslation(resID, rs.firstLang(RT_GROUP_CURSOR, resID))
 }
 
 // GetCursorTranslation extracts a cursor from a specific language of the resource set.
@@ -202,7 +201,7 @@ func (rs *ResourceSet) GetCursorTranslation(resID Identifier, langID uint16) (*C
 		if err != nil {
 			return nil, errors.New(errInvalidGroup)
 		}
-		img := rs.Get(RT_CURSOR, ID(entry.Id), langID)
+		img := rs.Get(RT_CURSOR, ID(entry.Id), rs.firstLang(RT_CURSOR, ID(entry.Id)))
 		if img == nil {
 			return nil, errors.New(errCursorMissing)
 		}
