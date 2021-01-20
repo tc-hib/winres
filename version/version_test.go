@@ -13,7 +13,7 @@ import (
 )
 
 func ExampleInfo_Set() {
-	vi := &Info{}
+	vi := Info{}
 	// 0x409 is en-US, and the default language
 	vi.Set(0x409, ProductName, "Good Product")
 	// 0x40C is fr-FR
@@ -23,7 +23,7 @@ func ExampleInfo_Set() {
 }
 
 func ExampleInfo() {
-	vi := &Info{}
+	vi := Info{}
 	// Set some info in the fixed structure
 	vi.ProductVersion = [4]uint16{1, 0, 0, 1}
 	// Set some info in the string table
@@ -629,7 +629,7 @@ func TestInfo_SplitTranslations(t *testing.T) {
 func checkBytes(t *testing.T, vi *Info) {
 	b := vi.Bytes()
 
-	refFile := filepath.Join("testdata", t.Name()+".golden")
+	refFile := golden(t)
 	ref, _ := ioutil.ReadFile(refFile)
 
 	if !bytes.Equal(ref, b) {
@@ -645,11 +645,15 @@ func checkBytes(t *testing.T, vi *Info) {
 }
 
 func loadGolden(t *testing.T) []byte {
-	refFile := filepath.Join("testdata", t.Name()+".golden")
+	refFile := golden(t)
 	ref, err := ioutil.ReadFile(refFile)
 	if err != nil {
 		t.Error(err)
 		return nil
 	}
 	return ref
+}
+
+func golden(t *testing.T) string {
+	return filepath.Join("testdata", t.Name()+".golden")
 }

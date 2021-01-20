@@ -1,3 +1,7 @@
+// Package version provides functions to build a VERSIONINFO structure for Windows applications.
+//
+// This what Windows displays in the Details tab of file properties.
+//
 package version
 
 import (
@@ -31,7 +35,9 @@ const (
 )
 
 const (
+	// LangNeutral is the LCID for language agnostic data.
 	LangNeutral = 0
+	// LangDefault is the LCID for en-US, and it is the default in many tools and APIs.
 	LangDefault = 0x409
 )
 
@@ -67,7 +73,7 @@ type stringTable map[string]string
 //
 // Standard keys are defined as constants in this package: version.ProductName, version.CompanyName, ...
 //
-// Strings may not contain NUL characters.
+// Strings must not contain NUL characters.
 //
 // Language Code Identifiers (LCID) are listed there: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-lcid/
 //
@@ -156,13 +162,13 @@ func (vi *Info) SetFileVersion(fileVersion string) {
 //
 // Each struct corresponds to one translation, and its language ID will be the one it is mapped to.
 //
-// This means, each struct is supposed to contain exactly one translation,
+// This means that each struct is supposed to contain exactly one translation,
 // either neutral or of same language ID as it is mapped to.
 //
 // If a struct contains several translations, those that don't correspond to the map key will be ignored.
 //
 // If a struct contains one translation with a different language ID,
-// it will be imported as if it had been neutral.
+// it will be imported as if it had been the same value as the map key.
 //
 func MergeTranslations(translations map[uint16]*Info) *Info {
 	vi := &Info{}
