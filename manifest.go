@@ -2,15 +2,24 @@ package winres
 
 import (
 	"bytes"
+	"encoding/xml"
+	"fmt"
+	"strconv"
+	"strings"
 	"text/template"
 )
 
-type appManifestCommon struct {
-	Name                              string // Application name
-	Version                           string // Application version
-	Description                       string // Application description
-	UIAccess                          bool   // Require access to other applications' UI elements
+// AppManifest describes an application manifest.
+//
+// Its zero value corresponds to the most common case.
+type AppManifest struct {
+	Identity                          AssemblyIdentity
+	Description                       string
+	Compatibility                     SupportedOS
+	ExecutionLevel                    ExecutionLevel
+	UIAccess                          bool // Require access to other applications' UI elements
 	AutoElevate                       bool
+	DPIAwareness                      DPIAwareness
 	DisableTheming                    bool
 	DisableWindowFiltering            bool
 	HighResolutionScrollingAware      bool
@@ -22,16 +31,21 @@ type appManifestCommon struct {
 	UseCommonControlsV6               bool // Application requires Common Controls V6 (V5 remains the default)
 }
 
-// AppManifest describes an application manifest.
+// AssemblyIdentity defines the side-by-side assembly identity of the executable.
 //
-// Its zero value corresponds to the most common case.
-type AppManifest struct {
-	appManifestCommon
-	ExecutionLevel ExecutionLevel
-	Compatibility  OSCompatibility
-	DPIAwareness   DPIAwareness
+// It should not be needed unless another assembly depends on this one.
+//
+// If the Name field is empty, the <assemblyIdentity> element will be omitted.
+type AssemblyIdentity struct {
+	Name    string
+	Version [4]uint16
 }
 
+// DPIAwareness is an enumeration which corresponds to the <dpiAware> and the <dpiAwareness> elements.
+//
+// When it is set to DPIPerMonitorV2, it will fallback to DPIAware if the OS does not support it.
+//
+// DPIPerMonitor would not scale windows on secondary monitors.
 type DPIAwareness int
 
 const (
@@ -41,16 +55,23 @@ const (
 	DPIPerMonitorV2
 )
 
-type OSCompatibility int
+// SupportedOS is an enumeration that provides a simplified way to fill the
+// compatibility element in an application manifest, by only setting a minimum OS.
+//
+// Its zero value is Win7AndAbove, which matches Go's requirements.
+//
+// https://github.com/golang/go/wiki/MinimumRequirements#windows
+type SupportedOS int
 
 const (
-	Win7AndAbove OSCompatibility = iota
+	WinVistaAndAbove SupportedOS = iota - 1
+	Win7AndAbove
 	Win8AndAbove
 	Win81AndAbove
 	Win10AndAbove
-	WinVistaAndAbove
 )
 
+// ExecutionLevel is used in an AppManifest to set the required execution level.
 type ExecutionLevel int
 
 const (
@@ -70,9 +91,11 @@ const (
 // language=GoTemplate
 var manifestTemplate = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+{{- if .AssemblyName}}
 
-  <assemblyIdentity type="win32" name="{{.Name | html}}" version="{{.Version | html}}" processorArchitecture="*"/>
-{{- if ne .Description ""}}
+  <assemblyIdentity type="win32" name="{{.AssemblyName | html}}" version="{{.AssemblyVersion}}" processorArchitecture="*"/>
+{{- end}}
+{{- if .Description}}
   <description>{{.Description | html}}</description>
 {{- end}}
 
@@ -139,12 +162,20 @@ var manifestTemplate = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 func makeManifest(manifest AppManifest) []byte {
 	vars := struct {
-		appManifestCommon
-		SupportedOS    []string
-		DPIAware       string
-		DPIAwareness   string
-		ExecutionLevel string
-	}{appManifestCommon: manifest.appManifestCommon}
+		AppManifest
+		AssemblyName    string
+		AssemblyVersion string
+		SupportedOS     []string
+		DPIAware        string
+		DPIAwareness    string
+		ExecutionLevel  string
+	}{AppManifest: manifest}
+
+	if manifest.Identity.Name != "" {
+		vars.AssemblyName = manifest.Identity.Name
+		v := manifest.Identity.Version
+		vars.AssemblyVersion = fmt.Sprintf("%d.%d.%d.%d", v[0], v[1], v[2], v[3])
+	}
 
 	vars.SupportedOS = []string{
 		osWin10,
@@ -198,4 +229,164 @@ func makeManifest(manifest AppManifest) []byte {
 	}
 
 	return buf.Bytes()
+}
+
+type appManifestXML struct {
+	Identity struct {
+		Name    string `xml:"name,attr"`
+		Version string `xml:"version,attr"`
+	} `xml:"assemblyIdentity"`
+	Description   string `xml:"description"`
+	Compatibility struct {
+		Application struct {
+			SupportedOS []struct {
+				Id string `xml:"Id,attr"`
+			} `xml:"supportedOS"`
+		} `xml:"application"`
+	} `xml:"compatibility"`
+	Application struct {
+		WindowsSettings struct {
+			DPIAware                          string `xml:"dpiAware"`
+			DPIAwareness                      string `xml:"dpiAwareness"`
+			AutoElevate                       string `xml:"autoElevate"`
+			DisableTheming                    string `xml:"disableTheming"`
+			DisableWindowFiltering            string `xml:"disableWindowFiltering"`
+			HighResolutionScrollingAware      string `xml:"highResolutionScrollingAware"`
+			PrinterDriverIsolation            string `xml:"printerDriverIsolation"`
+			UltraHighResolutionScrollingAware string `xml:"ultraHighResolutionScrollingAware"`
+			LongPathAware                     string `xml:"longPathAware"`
+			GDIScaling                        string `xml:"gdiScaling"`
+			HeapType                          string `xml:"heapType"`
+		} `xml:"windowsSettings"`
+	} `xml:"application"`
+	TrustInfo struct {
+		Security struct {
+			RequestedPrivileges struct {
+				RequestedExecutionLevel struct {
+					Level    string `xml:"level,attr"`
+					UIAccess string `xml:"uiAccess,attr"`
+				} `xml:"requestedExecutionLevel"`
+			} `xml:"requestedPrivileges"`
+		} `xml:"security"`
+	} `xml:"trustInfo"`
+	Dependency struct {
+		DependentAssembly []struct {
+			Identity struct {
+				Name           string `xml:"name,attr"`
+				Version        string `xml:"version,attr"`
+				PublicKeyToken string `xml:"publicKeyToken,attr"`
+			} `xml:"assemblyIdentity"`
+		} `xml:"dependentAssembly"`
+	} `xml:"dependency"`
+}
+
+// AppManifestFromXML makes an AppManifest from an xml manifest,
+// trying to retrieve as much valid information as possible.
+//
+// If the xml contains other data, they are ignored.
+//
+// This function can only return xml syntax errors, other errors are ignored.
+func AppManifestFromXML(data []byte) (AppManifest, error) {
+	x := appManifestXML{}
+	err := xml.Unmarshal(data, &x)
+	if err != nil {
+		return AppManifest{}, err
+	}
+	var m AppManifest
+
+	m.Identity.Name = x.Identity.Name
+	v := strings.Split(x.Identity.Version, ".")
+	if len(v) > 4 {
+		v = v[:4]
+	}
+	for i := range v {
+		n, _ := strconv.ParseUint(v[i], 10, 16)
+		m.Identity.Version[i] = uint16(n)
+	}
+	m.Description = x.Description
+
+	m.Compatibility = Win10AndAbove + 1
+	for _, os := range x.Compatibility.Application.SupportedOS {
+		c := osIDToEnum(os.Id)
+		if c < m.Compatibility {
+			m.Compatibility = c
+		}
+	}
+	if m.Compatibility > Win10AndAbove {
+		m.Compatibility = Win7AndAbove
+	}
+
+	settings := x.Application.WindowsSettings
+	m.DPIAwareness = readDPIAwareness(settings.DPIAware, settings.DPIAwareness)
+	m.AutoElevate = manifestBool(settings.AutoElevate)
+	m.DisableTheming = manifestBool(settings.DisableTheming)
+	m.DisableWindowFiltering = manifestBool(settings.DisableWindowFiltering)
+	m.HighResolutionScrollingAware = manifestBool(settings.HighResolutionScrollingAware)
+	m.PrinterDriverIsolation = manifestBool(settings.PrinterDriverIsolation)
+	m.UltraHighResolutionScrollingAware = manifestBool(settings.UltraHighResolutionScrollingAware)
+	m.LongPathAware = manifestBool(settings.LongPathAware)
+	m.GDIScaling = manifestBool(settings.GDIScaling)
+	m.SegmentHeap = manifestString(settings.HeapType) == "segmentheap"
+
+	for _, dep := range x.Dependency.DependentAssembly {
+		if manifestString(dep.Identity.Name) == "microsoft.windows.common-controls" &&
+			strings.HasPrefix(manifestString(dep.Identity.Version), "6.") &&
+			manifestString(dep.Identity.PublicKeyToken) == "6595b64144ccf1df" {
+			m.UseCommonControlsV6 = true
+		}
+	}
+
+	m.UIAccess = manifestBool(x.TrustInfo.Security.RequestedPrivileges.RequestedExecutionLevel.UIAccess)
+	switch manifestString(x.TrustInfo.Security.RequestedPrivileges.RequestedExecutionLevel.Level) {
+	case "requireadministrator":
+		m.ExecutionLevel = RequireAdministrator
+	case "highestavailable":
+		m.ExecutionLevel = HighestAvailable
+	}
+
+	return m, nil
+}
+
+func readDPIAwareness(dpiAware string, dpiAwareness string) DPIAwareness {
+	for _, s := range strings.Split(dpiAwareness, ",") {
+		switch manifestString(s) {
+		case "permonitorv2":
+			return DPIPerMonitorV2
+		case "permonitor":
+			return DPIPerMonitor
+		case "system":
+			return DPIAware
+		case "unaware":
+			return DPIUnaware
+		}
+	}
+	switch manifestString(dpiAware) {
+	case "true":
+		return DPIAware
+	case "true/pm":
+		return DPIPerMonitor
+	}
+	return DPIUnaware
+}
+
+func manifestString(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
+}
+
+func manifestBool(s string) bool {
+	return manifestString(s) == "true"
+}
+
+func osIDToEnum(osID string) SupportedOS {
+	switch osID {
+	case osWinVista:
+		return WinVistaAndAbove
+	case osWin7:
+		return Win7AndAbove
+	case osWin8:
+		return Win8AndAbove
+	case osWin81:
+		return Win81AndAbove
+	}
+	return Win10AndAbove
 }

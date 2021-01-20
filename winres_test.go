@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/tc-hib/winres/version"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/tc-hib/winres/version"
 )
 
 func TestErrors(t *testing.T) {
@@ -137,7 +138,7 @@ func TestWinRes4(t *testing.T) {
 func TestResourceSet_Count(t *testing.T) {
 	rs := &ResourceSet{}
 	rs.SetManifest(AppManifest{})
-	rs.SetManifest(AppManifest{appManifestCommon: appManifestCommon{Name: "Hello"}})
+	rs.SetManifest(AppManifest{Identity: AssemblyIdentity{Name: "Hello"}})
 	rs.Set(RT_RCDATA, ID(42), 0x40C, make([]byte, 8))
 	rs.Set(RT_RCDATA, ID(42), 0x40C, make([]byte, 9))
 	rs.Set(RT_RCDATA, Name("Data"), 0x40C, make([]byte, 6))
@@ -246,7 +247,7 @@ winres.ID(999) -> 0x0404 -> [4]byte
 	}
 }
 
-//language=xml
+//language=manifest
 const manifest1 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
 
