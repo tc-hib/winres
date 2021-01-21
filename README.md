@@ -49,9 +49,10 @@ Here is a quick example:
 package main
 
 import (
-	"github.com/tc-hib/winres"
 	"io/ioutil"
 	"os"
+
+	"github.com/tc-hib/winres"
 )
 
 func main() {
