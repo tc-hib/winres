@@ -476,6 +476,9 @@ func (pew *peWriter) writeEXE(w io.Writer) error {
 		return err
 	}
 	err = writeBlank(w, int64(pew.rsrcHdr.SizeOfRawData)-int64(len(pew.rsrcData)))
+	if err != nil {
+		return err
+	}
 
 	// Remainder
 	_, err = pew.src.r.Seek(pew.src.rsrcEnd, io.SeekStart)
