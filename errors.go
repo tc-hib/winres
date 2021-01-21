@@ -21,4 +21,9 @@ const (
 
 	errInvalidResDir        = "invalid resource directory"
 	errDataEntryOutOfBounds = "data entry out of bounds"
+
+	errInvalidVersion      = "invalid version number"
+	errUnknownSupportedOS  = "unknown minimum-os value"
+	errUnknownDPIAwareness = "unknown dpi-awareness value"
+	errUnknownExecLevel    = "unknown execution-level value"
 )

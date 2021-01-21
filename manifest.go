@@ -2,7 +2,9 @@ package winres
 
 import (
 	"bytes"
+	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -13,22 +15,22 @@ import (
 //
 // Its zero value corresponds to the most common case.
 type AppManifest struct {
-	Identity                          AssemblyIdentity
-	Description                       string
-	Compatibility                     SupportedOS
-	ExecutionLevel                    ExecutionLevel
-	UIAccess                          bool // Require access to other applications' UI elements
-	AutoElevate                       bool
-	DPIAwareness                      DPIAwareness
-	DisableTheming                    bool
-	DisableWindowFiltering            bool
-	HighResolutionScrollingAware      bool
-	UltraHighResolutionScrollingAware bool
-	LongPathAware                     bool
-	PrinterDriverIsolation            bool
-	GDIScaling                        bool
-	SegmentHeap                       bool
-	UseCommonControlsV6               bool // Application requires Common Controls V6 (V5 remains the default)
+	Identity                          AssemblyIdentity `json:"identity"`
+	Description                       string           `json:"description"`
+	Compatibility                     SupportedOS      `json:"minimum-os"`
+	ExecutionLevel                    ExecutionLevel   `json:"execution-level"`
+	UIAccess                          bool             `json:"ui-access"` // Require access to other applications' UI elements
+	AutoElevate                       bool             `json:"auto-elevate"`
+	DPIAwareness                      DPIAwareness     `json:"dpi-awareness"`
+	DisableTheming                    bool             `json:"disable-theming"`
+	DisableWindowFiltering            bool             `json:"disable-window-filtering"`
+	HighResolutionScrollingAware      bool             `json:"high-resolution-scrolling-aware"`
+	UltraHighResolutionScrollingAware bool             `json:"ultra-high-resolution-scrolling-aware"`
+	LongPathAware                     bool             `json:"long-path-aware"`
+	PrinterDriverIsolation            bool             `json:"printer-driver-isolation"`
+	GDIScaling                        bool             `json:"gdi-scaling"`
+	SegmentHeap                       bool             `json:"segment-heap"`
+	UseCommonControlsV6               bool             `json:"use-common-controls-v6"` // Application requires Common Controls V6 (V5 remains the default)
 }
 
 // AssemblyIdentity defines the side-by-side assembly identity of the executable.
@@ -389,4 +391,143 @@ func osIDToEnum(osID string) SupportedOS {
 		return Win81AndAbove
 	}
 	return Win10AndAbove
+}
+
+// JSON marshalling:
+
+func (os SupportedOS) MarshalText() ([]byte, error) {
+	switch os {
+	case WinVistaAndAbove:
+		return []byte("vista"), nil
+	case Win7AndAbove:
+		return []byte("win7"), nil
+	case Win8AndAbove:
+		return []byte("win8"), nil
+	case Win81AndAbove:
+		return []byte("win8.1"), nil
+	case Win10AndAbove:
+		return []byte("win10"), nil
+	}
+	return nil, errors.New(errUnknownSupportedOS)
+}
+
+func (os *SupportedOS) UnmarshalText(b []byte) error {
+	switch strings.ToLower(strings.TrimSpace(string(b))) {
+	case "vista":
+		*os = WinVistaAndAbove
+		return nil
+	case "win7":
+		*os = Win7AndAbove
+		return nil
+	case "win8":
+		*os = Win8AndAbove
+		return nil
+	case "win8.1":
+		*os = Win81AndAbove
+		return nil
+	case "win10":
+		*os = Win10AndAbove
+		return nil
+	}
+	return errors.New(errUnknownSupportedOS)
+}
+
+func (a DPIAwareness) MarshalText() ([]byte, error) {
+	switch a {
+	case DPIAware:
+		return []byte("system"), nil
+	case DPIUnaware:
+		return []byte("unaware"), nil
+	case DPIPerMonitor:
+		return []byte("per monitor"), nil
+	case DPIPerMonitorV2:
+		return []byte("per monitor v2"), nil
+	}
+	return nil, errors.New(errUnknownDPIAwareness)
+}
+
+func (a *DPIAwareness) UnmarshalText(b []byte) error {
+	switch strings.ToLower(strings.TrimSpace(string(b))) {
+	case "system", "true", "":
+		*a = DPIAware
+		return nil
+	case "unaware", "false":
+		*a = DPIUnaware
+		return nil
+	case "per monitor", "permonitor", "true/pm":
+		*a = DPIPerMonitor
+		return nil
+	case "per monitor v2", "permonitorv2":
+		*a = DPIPerMonitorV2
+		return nil
+	}
+	return errors.New(errUnknownDPIAwareness)
+}
+
+func (level ExecutionLevel) MarshalText() ([]byte, error) {
+	switch level {
+	case AsInvoker:
+		return []byte(""), nil
+	case HighestAvailable:
+		return []byte("highest"), nil
+	case RequireAdministrator:
+		return []byte("administrator"), nil
+	}
+	return nil, errors.New(errUnknownExecLevel)
+}
+
+func (level *ExecutionLevel) UnmarshalText(b []byte) error {
+	switch strings.ToLower(strings.TrimSpace(string(b))) {
+	case "", "as invoker", "asinvoker":
+		*level = AsInvoker
+		return nil
+	case "highest", "highest available", "highestavailable":
+		*level = HighestAvailable
+		return nil
+	case "administrator", "require administrator", "requireadministrator":
+		*level = RequireAdministrator
+		return nil
+	}
+	return errors.New(errUnknownExecLevel)
+}
+
+type assemblyIdentityJSON struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
+func (ai AssemblyIdentity) MarshalJSON() ([]byte, error) {
+	if ai.Name == "" {
+		return []byte(`{}`), nil
+	}
+	j := assemblyIdentityJSON{}
+	j.Name = ai.Name
+	if ai.Name != "" {
+		j.Version = fmt.Sprintf("%d.%d.%d.%d", ai.Version[0], ai.Version[1], ai.Version[2], ai.Version[3])
+	}
+	return json.Marshal(j)
+}
+
+func (ai *AssemblyIdentity) UnmarshalJSON(b []byte) error {
+	j := assemblyIdentityJSON{}
+	if err := json.Unmarshal(b, &j); err != nil {
+		return err
+	}
+	ai.Name = j.Name
+	j.Version = strings.TrimSpace(j.Version)
+	if j.Version == "" {
+		return nil
+	}
+	v := strings.Split(j.Version, ".")
+	if len(v) > 4 {
+		return errors.New(errInvalidVersion)
+	}
+	for i := range v {
+		n, err := strconv.ParseUint(v[i], 10, 16)
+		if err != nil {
+			return errors.New(errInvalidVersion)
+		}
+		ai.Version[i] = uint16(n)
+	}
+	return nil
 }

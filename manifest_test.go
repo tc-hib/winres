@@ -1,6 +1,8 @@
 package winres
 
 import (
+	"encoding/json"
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -568,20 +570,286 @@ func Test_readDPIAwareness(t *testing.T) {
 		args args
 		want DPIAwareness
 	}{
-		{name: "", args: args{dpiAware: "", dpiAwareness: "true, systeM , permonitor"}, want: DPIAware},
-		{name: "", args: args{dpiAware: "true", dpiAwareness: "perMonitorv2,system"}, want: DPIPerMonitorV2},
-		{name: "", args: args{dpiAware: "true", dpiAwareness: ""}, want: DPIAware},
-		{name: "", args: args{dpiAware: " true/PM ", dpiAwareness: ""}, want: DPIPerMonitor},
-		{name: "", args: args{dpiAware: "false", dpiAwareness: "system"}, want: DPIAware},
-		{name: "", args: args{dpiAware: "true / PM", dpiAwareness: "per monitor"}, want: DPIUnaware},
-		{name: "", args: args{dpiAware: "true", dpiAwareness: "perMonitorv2,system"}, want: DPIPerMonitorV2},
-		{name: "", args: args{dpiAware: "true", dpiAwareness: "PerMonitor"}, want: DPIPerMonitor},
-		{name: "", args: args{dpiAware: "true", dpiAwareness: " unaWarE"}, want: DPIUnaware},
+		{args: args{dpiAware: "", dpiAwareness: "true, systeM , permonitor"}, want: DPIAware},
+		{args: args{dpiAware: "true", dpiAwareness: "perMonitorv2,system"}, want: DPIPerMonitorV2},
+		{args: args{dpiAware: "true", dpiAwareness: ""}, want: DPIAware},
+		{args: args{dpiAware: " true/PM ", dpiAwareness: ""}, want: DPIPerMonitor},
+		{args: args{dpiAware: "false", dpiAwareness: "system"}, want: DPIAware},
+		{args: args{dpiAware: "true / PM", dpiAwareness: "per monitor"}, want: DPIUnaware},
+		{args: args{dpiAware: "true", dpiAwareness: "perMonitorv2,system"}, want: DPIPerMonitorV2},
+		{args: args{dpiAware: "true", dpiAwareness: "PerMonitor"}, want: DPIPerMonitor},
+		{args: args{dpiAware: "true", dpiAwareness: " unaWarE"}, want: DPIUnaware},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := readDPIAwareness(tt.args.dpiAware, tt.args.dpiAwareness); got != tt.want {
 				t.Errorf("readDPIAwareness() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_AppManifest_MarshalJSON(t *testing.T) {
+	tests := []struct {
+		name     string
+		manifest AppManifest
+		want     string
+		wantErr  string
+	}{
+		{
+			manifest: AppManifest{},
+			want:// language=json
+			`{"identity":{},"description":"","minimum-os":"win7","execution-level":"","ui-access":false,"auto-elevate":false,"dpi-awareness":"system","disable-theming":false,"disable-window-filtering":false,"high-resolution-scrolling-aware":false,"ultra-high-resolution-scrolling-aware":false,"long-path-aware":false,"printer-driver-isolation":false,"gdi-scaling":false,"segment-heap":false,"use-common-controls-v6":false}`,
+		},
+		{
+			manifest: AppManifest{
+				Identity: AssemblyIdentity{
+					Name:    "app.name",
+					Version: [4]uint16{1, 2, 3, 65535},
+				},
+				Description:                  "app desc",
+				Compatibility:                WinVistaAndAbove,
+				ExecutionLevel:               RequireAdministrator,
+				UIAccess:                     true,
+				DPIAwareness:                 DPIPerMonitorV2,
+				DisableTheming:               true,
+				HighResolutionScrollingAware: true,
+				LongPathAware:                true,
+				GDIScaling:                   true,
+				UseCommonControlsV6:          true,
+			},
+			want:// language=json
+			`{"identity":{"name":"app.name","version":"1.2.3.65535"},"description":"app desc","minimum-os":"vista","execution-level":"administrator","ui-access":true,"auto-elevate":false,"dpi-awareness":"per monitor v2","disable-theming":true,"disable-window-filtering":false,"high-resolution-scrolling-aware":true,"ultra-high-resolution-scrolling-aware":false,"long-path-aware":true,"printer-driver-isolation":false,"gdi-scaling":true,"segment-heap":false,"use-common-controls-v6":true}`,
+		},
+		{
+			manifest: AppManifest{
+				Identity: AssemblyIdentity{
+					Name:    "",
+					Version: [4]uint16{1, 2, 3, 4},
+				},
+				Compatibility:          Win8AndAbove,
+				ExecutionLevel:         HighestAvailable,
+				AutoElevate:            true,
+				DPIAwareness:           DPIPerMonitor,
+				LongPathAware:          true,
+				PrinterDriverIsolation: true,
+				GDIScaling:             true,
+				SegmentHeap:            true,
+			},
+			want:// language=json
+			`{"identity":{},"description":"","minimum-os":"win8","execution-level":"highest","ui-access":false,"auto-elevate":true,"dpi-awareness":"per monitor","disable-theming":false,"disable-window-filtering":false,"high-resolution-scrolling-aware":false,"ultra-high-resolution-scrolling-aware":false,"long-path-aware":true,"printer-driver-isolation":true,"gdi-scaling":true,"segment-heap":true,"use-common-controls-v6":false}`,
+		},
+		{
+			manifest: AppManifest{
+				Identity: AssemblyIdentity{
+					Name: "a",
+				},
+				Compatibility:                     Win81AndAbove,
+				ExecutionLevel:                    AsInvoker,
+				AutoElevate:                       true,
+				DPIAwareness:                      DPIUnaware,
+				DisableTheming:                    true,
+				DisableWindowFiltering:            true,
+				HighResolutionScrollingAware:      true,
+				UltraHighResolutionScrollingAware: true,
+			},
+			want:// language=json
+			`{"identity":{"name":"a","version":"0.0.0.0"},"description":"","minimum-os":"win8.1","execution-level":"","ui-access":false,"auto-elevate":true,"dpi-awareness":"unaware","disable-theming":true,"disable-window-filtering":true,"high-resolution-scrolling-aware":true,"ultra-high-resolution-scrolling-aware":true,"long-path-aware":false,"printer-driver-isolation":false,"gdi-scaling":false,"segment-heap":false,"use-common-controls-v6":false}`,
+		},
+		{
+			manifest: AppManifest{
+				Compatibility:                     Win10AndAbove,
+				UIAccess:                          true,
+				DPIAwareness:                      DPIAware,
+				DisableWindowFiltering:            true,
+				UltraHighResolutionScrollingAware: true,
+				PrinterDriverIsolation:            true,
+				SegmentHeap:                       true,
+			},
+			want:// language=json
+			`{"identity":{},"description":"","minimum-os":"win10","execution-level":"","ui-access":true,"auto-elevate":false,"dpi-awareness":"system","disable-theming":false,"disable-window-filtering":true,"high-resolution-scrolling-aware":false,"ultra-high-resolution-scrolling-aware":true,"long-path-aware":false,"printer-driver-isolation":true,"gdi-scaling":false,"segment-heap":true,"use-common-controls-v6":false}`,
+		},
+		{
+			manifest: AppManifest{Compatibility: 42},
+			wantErr:  errUnknownSupportedOS,
+		},
+		{
+			manifest: AppManifest{DPIAwareness: 42},
+			wantErr:  errUnknownDPIAwareness,
+		},
+		{
+			manifest: AppManifest{ExecutionLevel: 42},
+			wantErr:  errUnknownExecLevel,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := json.Marshal(tt.manifest)
+			if !isErr(err, tt.wantErr) {
+				t.Errorf("json.Marshal(AppManifest) error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err == nil && string(got) != tt.want {
+				t.Errorf("json.Marshal(AppManifest):\n%s\nwant:\n%s", string(got), tt.want)
+			}
+		})
+	}
+}
+
+func isErr(err error, msg string) bool {
+	if err == nil && msg == "" {
+		return true
+	}
+	if msg == "*" {
+		return err != nil
+	}
+	for err != nil {
+		if err.Error() == msg {
+			return true
+		}
+		err = errors.Unwrap(err)
+	}
+	return false
+}
+
+func Test_AppManifest_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		json    string
+		want    AppManifest
+		wantErr string
+	}{
+		{
+			json:// language=json
+			`{}`,
+			want: AppManifest{},
+		},
+		{
+			json:// language=json
+			`{"identity":{},"description":"","minimum-os":"win7","execution-level":"","ui-access":false,"auto-elevate":false,"dpi-awareness":"system","disable-theming":false,"disable-window-filtering":false,"high-resolution-scrolling-aware":false,"ultra-high-resolution-scrolling-aware":false,"long-path-aware":false,"printer-driver-isolation":false,"gdi-scaling":false,"segment-heap":false,"use-common-controls-v6":false}`,
+			want: AppManifest{},
+		},
+		{
+			json:// language=json
+			`{"identity":{},"description":"","minimum-os":"win10","execution-level":"","ui-access":true,"auto-elevate":false,"dpi-awareness":"system","disable-theming":false,"disable-window-filtering":true,"high-resolution-scrolling-aware":false,"ultra-high-resolution-scrolling-aware":true,"long-path-aware":false,"printer-driver-isolation":true,"gdi-scaling":false,"segment-heap":true,"use-common-controls-v6":false}`,
+			want: AppManifest{
+				Compatibility:                     Win10AndAbove,
+				UIAccess:                          true,
+				DPIAwareness:                      DPIAware,
+				DisableWindowFiltering:            true,
+				UltraHighResolutionScrollingAware: true,
+				PrinterDriverIsolation:            true,
+				SegmentHeap:                       true,
+			},
+		},
+		{
+			json:// language=json
+			`{"identity":{"name":"app.name","version":" 65535.65535.65535.65535 "},"description":"app desc","minimum-os":" Vista","execution-level":"administrator","ui-access":true,"auto-elevate":false,"dpi-awareness":"per monitor v2","disable-theming":true,"disable-window-filtering":false,"high-resolution-scrolling-aware":true,"ultra-high-resolution-scrolling-aware":false,"long-path-aware":true,"printer-driver-isolation":false,"gdi-scaling":true,"segment-heap":false,"use-common-controls-v6":true}`,
+			want: AppManifest{
+				Identity: AssemblyIdentity{
+					Name:    "app.name",
+					Version: [4]uint16{65535, 65535, 65535, 65535},
+				},
+				Description:                  "app desc",
+				Compatibility:                WinVistaAndAbove,
+				ExecutionLevel:               RequireAdministrator,
+				UIAccess:                     true,
+				DPIAwareness:                 DPIPerMonitorV2,
+				DisableTheming:               true,
+				HighResolutionScrollingAware: true,
+				LongPathAware:                true,
+				GDIScaling:                   true,
+				UseCommonControlsV6:          true,
+			},
+		},
+		{
+			json:// language=json
+			`{"identity":{"name":"app.name","version":" 1.2"},"minimum-os":"win8","execution-level":"highest","auto-elevate":true,"dpi-awareness":"per monitor","disable-window-filtering":true,"high-resolution-scrolling-aware":false,"ultra-high-resolution-scrolling-aware":true,"long-path-aware":false,"printer-driver-isolation":true,"gdi-scaling":false,"segment-heap":true,"use-common-controls-v6":false}`,
+			want: AppManifest{
+				Identity: AssemblyIdentity{
+					Name:    "app.name",
+					Version: [4]uint16{1, 2},
+				},
+				Compatibility:                     Win8AndAbove,
+				ExecutionLevel:                    HighestAvailable,
+				DPIAwareness:                      DPIPerMonitor,
+				AutoElevate:                       true,
+				DisableWindowFiltering:            true,
+				UltraHighResolutionScrollingAware: true,
+				PrinterDriverIsolation:            true,
+				SegmentHeap:                       true,
+			},
+		},
+		{
+			json:// language=json
+			`{"identity":{"version":"1"},"dpi-awareness":"unaware","minimum-os":"win8.1","execution-level":"as invoker","segment-heap":true,"use-common-controls-v6":true}`,
+			want: AppManifest{
+				Identity: AssemblyIdentity{
+					Version: [4]uint16{1},
+				},
+				Compatibility:       Win81AndAbove,
+				ExecutionLevel:      AsInvoker,
+				DPIAwareness:        DPIUnaware,
+				SegmentHeap:         true,
+				UseCommonControlsV6: true,
+			},
+		},
+		{
+			json:// language=json
+			`{"identity":{"version":"1.65536.1.1"}}`,
+			wantErr: errInvalidVersion,
+		},
+		{
+			json:// language=json
+			`{"identity":{"version":"1.1.1.1.0"}}`,
+			wantErr: errInvalidVersion,
+		},
+		{
+			json:// language=json
+			`{"identity":{"version":"1.1.1. 1"}}`,
+			wantErr: errInvalidVersion,
+		},
+		{
+			json:// language=json
+			`{"identity":{"version":"-1.1.1.1"}}`,
+			wantErr: errInvalidVersion,
+		},
+		{
+			json:// language=json
+			`{"minimum-os":"linux"}`,
+			wantErr: errUnknownSupportedOS,
+		},
+		{
+			json:// language=json
+			`{"execution-level":"root"}`,
+			wantErr: errUnknownExecLevel,
+		},
+		{
+			json:// language=json
+			`{"dpi-awareness":"mostly"}`,
+			wantErr: errUnknownDPIAwareness,
+		},
+		{
+			json:// language=json
+			`{"":""]`,
+			wantErr: "*",
+		},
+		{
+			json:// language=json
+			`{"identity":["app.name"]}`,
+			wantErr: "*",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got AppManifest
+			err := json.Unmarshal([]byte(tt.json), &got)
+			if (tt.wantErr != "") != (err != nil) || (err != nil && tt.wantErr != "*" && err.Error() != tt.wantErr) {
+				t.Errorf("json.Unmarshal(AppManifest) error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err == nil && !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("json.Unmarshal(AppManifest) got = %v, want %v", got, tt.want)
 			}
 		})
 	}
