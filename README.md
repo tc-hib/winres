@@ -1,5 +1,6 @@
 # winres
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/tc-hib/winres.svg)](https://pkg.go.dev/github.com/tc-hib/winres)
 [![codecov](https://codecov.io/gh/tc-hib/winres/branch/master/graph/badge.svg?token=JURCYAY1N1)](https://codecov.io/gh/tc-hib/winres)
 
 Package winres provides functions for embedding resources in a Windows executable built with Go.
