@@ -1,5 +1,7 @@
 # winres
 
+[![codecov](https://codecov.io/gh/tc-hib/winres/branch/master/graph/badge.svg?token=JURCYAY1N1)](https://codecov.io/gh/tc-hib/winres)
+
 Package winres provides functions for embedding resources in a Windows executable built with Go.
 
 Most often, you'll want to embed an application icon, a manifest, and "version information", which is what you can see
