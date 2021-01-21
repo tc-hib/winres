@@ -2,7 +2,8 @@
 
 Package winres provides functions for embedding resources in a Windows executable built with Go.
 
-Most often, you'll want to embed an application icon, a manifest, and "version information", which is what you can see in the Details tab of file properties.
+Most often, you'll want to embed an application icon, a manifest, and "version information", which is what you can see
+in the Details tab of file properties.
 
 ## Command line tool
 
@@ -10,9 +11,8 @@ If you are looking for a command line tool, please head to [go-winres](https://g
 
 ## Alternatives
 
-This project is a shameful rewrite of [akavel/rsrc](https://www.github.com/akavel/rsrc/) and [josephspurrier/goversioninfo](https://github.com/josephspurrier/goversioninfo).
-
-It should be a little closer to the specifications and it can manage a few more cases, such as named resources and custom types.
+This project is similar to [akavel/rsrc](https://www.github.com/akavel/rsrc/)
+and [josephspurrier/goversioninfo](https://github.com/josephspurrier/goversioninfo).
 
 ## Limitations
 
@@ -33,15 +33,15 @@ See [Resource Compiler](https://docs.microsoft.com/en-us/windows/win32/menurc/re
 
 ## Usage
 
-To embed resources, you need an `.rsrc` section in your executable.
-winres provides functions to compile this `.rsrc` section into a COFF object file.
+To embed resources, you need an `.rsrc` section in your executable. winres provides functions to compile this `.rsrc`
+section into a COFF object file.
 
 Put this file in your project directory, name it "something.syso" or, preferably,
 "something_windows_amd64.syso", and you're done :
 the `go build` command will detect it and automatically use it.
 
-You should have a look at the [command line tool](https://github.com/tc-hib/go-winres) to try it.
-Using the library gives you more control, though.
+You should have a look at the [command line tool](https://github.com/tc-hib/go-winres) to try it. Using the library
+gives you more control, though.
 
 Here is a quick example:
 
