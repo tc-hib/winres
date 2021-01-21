@@ -460,18 +460,12 @@ type dirEntry struct {
 func (de dirEntry) walk(section *bytes.Reader, fn func(dirEntry) error) error {
 	entries, err := de.readDirTable(section)
 	if err != nil {
-		if err == io.EOF {
-			err = io.ErrUnexpectedEOF
-		}
 		return err
 	}
 
 	for _, entry := range entries {
 		err = fn(entry)
 		if err != nil {
-			if err == io.EOF {
-				err = io.ErrUnexpectedEOF
-			}
 			return err
 		}
 	}
@@ -482,7 +476,7 @@ func (de dirEntry) readData(section *bytes.Reader, baseAddress uint32) ([]byte, 
 	section.Seek(de.offset, io.SeekStart)
 
 	entry := resourceDataEntry{}
-	err := binary.Read(section, binary.LittleEndian, &entry)
+	err := binaryRead(section, &entry)
 	if err != nil {
 		return nil, err
 	}
@@ -503,13 +497,13 @@ func (de dirEntry) readDirTable(section *bytes.Reader) ([]dirEntry, error) {
 	section.Seek(de.offset, io.SeekStart)
 
 	table := resourceDirectoryTable{}
-	err := binary.Read(section, binary.LittleEndian, &table)
+	err := binaryRead(section, &table)
 	if err != nil {
 		return nil, err
 	}
 
 	dir := make([]resourceDirectoryIDEntry, table.NumberOfNameEntries+table.NumberOfIDEntries)
-	err = binary.Read(section, binary.LittleEndian, &dir)
+	err = binaryRead(section, &dir)
 	if err != nil {
 		return nil, err
 	}
@@ -540,13 +534,13 @@ func readName(section *bytes.Reader, offset uint32) (Name, error) {
 	section.Seek(int64(offset), io.SeekStart)
 
 	var length uint16
-	err := binary.Read(section, binary.LittleEndian, &length)
+	err := binaryRead(section, &length)
 	if err != nil {
 		return "", err
 	}
 
 	b := make([]uint16, length)
-	err = binary.Read(section, binary.LittleEndian, b)
+	err = binaryRead(section, b)
 	if err != nil {
 		return "", err
 	}

@@ -319,7 +319,7 @@ func (vi *Info) readChildren(parent interface{}, data []byte, pos *int) error {
 func (vi *Info) readFixedStruct(data []byte) error {
 	fixed := _VS_FIXEDFILEINFO{}
 	// No error handling because the caller guaranteed "data" is long enough
-	_ = binary.Read(bytes.NewReader(data), binary.LittleEndian, &fixed)
+	_ = binaryRead(bytes.NewReader(data), &fixed)
 	if fixed.Signature != fixedFileInfoSignature {
 		return errors.New(errInvalidSignature)
 	}
@@ -400,4 +400,14 @@ func readNodeHeader(data []byte) (nodeHeader, int, error) {
 		Type:        uint16(data[5])<<8 | uint16(data[4]),
 	}
 	return n, sizeOfNodeHeader, nil
+}
+
+// binaryRead is like binary.Read, except it always returns io.ErrUnexpectedEOF instead of io.EOF.
+// Furthermore, it always uses binary.LittleEndian.
+func binaryRead(r io.Reader, v interface{}) error {
+	err := binary.Read(r, binary.LittleEndian, v)
+	if err == io.EOF {
+		return io.ErrUnexpectedEOF
+	}
+	return err
 }

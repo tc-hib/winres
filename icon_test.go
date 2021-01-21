@@ -212,14 +212,10 @@ func TestLoadICO_ErrSeek(t *testing.T) {
 		t.Fatal("missing test data")
 	}
 
-	r := &badReader{
-		br:            bytes.NewReader(data),
-		seekCountdown: 0,
-		readCountdown: 0xFFFFFF,
-	}
+	r := &badSeeker{br: bytes.NewReader(data)}
 
 	icon, err := LoadICO(r)
-	if err == nil || icon != nil || err.Error() != errSeek+" 0" {
+	if err == nil || icon != nil || err.Error() != errSeek {
 		t.Fail()
 	}
 }

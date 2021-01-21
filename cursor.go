@@ -49,7 +49,7 @@ func NewCursorFromImages(images []CursorImage) (*Cursor, error) {
 // LoadCUR loads a CUR file and returns a cursor, ready to embed in a resource set.
 func LoadCUR(cur io.ReadSeeker) (*Cursor, error) {
 	hdr := cursorDirHeader{}
-	if err := binary.Read(cur, binary.LittleEndian, &hdr); err != nil {
+	if err := binaryRead(cur, &hdr); err != nil {
 		return nil, err
 	}
 
@@ -58,7 +58,7 @@ func LoadCUR(cur io.ReadSeeker) (*Cursor, error) {
 	}
 
 	entries := make([]cursorFileDirEntry, hdr.Count)
-	if err := binary.Read(cur, binary.LittleEndian, entries); err != nil {
+	if err := binaryRead(cur, entries); err != nil {
 		return nil, err
 	}
 
@@ -72,10 +72,7 @@ func LoadCUR(cur io.ReadSeeker) (*Cursor, error) {
 			return nil, err
 		}
 		img := make([]byte, e.BytesInRes)
-		if _, err := cur.Read(img); err != nil {
-			if err == io.EOF {
-				err = io.ErrUnexpectedEOF
-			}
+		if err := readFull(cur, img); err != nil {
 			return nil, err
 		}
 
@@ -189,7 +186,7 @@ func (rs *ResourceSet) GetCursorTranslation(resID Identifier, langID uint16) (*C
 
 	in := bytes.NewReader(data)
 	dir := cursorDirHeader{}
-	err := binary.Read(in, binary.LittleEndian, &dir)
+	err := binaryRead(in, &dir)
 	if err != nil || dir.Type != 2 || dir.Reserved != 0 {
 		return nil, errors.New(errInvalidGroup)
 	}
@@ -197,7 +194,7 @@ func (rs *ResourceSet) GetCursorTranslation(resID Identifier, langID uint16) (*C
 	g := &Cursor{}
 	for i := 0; i < int(dir.Count); i++ {
 		entry := cursorResDirEntry{}
-		err := binary.Read(in, binary.LittleEndian, &entry)
+		err := binaryRead(in, &entry)
 		if err != nil {
 			return nil, errors.New(errInvalidGroup)
 		}

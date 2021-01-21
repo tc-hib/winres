@@ -2,9 +2,11 @@ package winres
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"image"
 	"image/png"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -141,13 +143,17 @@ func shiftImage(img image.Image, x, y int) image.Image {
 }
 
 type badReader struct {
-	br            *bytes.Reader
-	seekCountdown int
-	readCountdown int
+	br     *bytes.Reader
+	errPos int64
+}
+
+type badSeeker struct {
+	br      *bytes.Reader
+	errIter int
 }
 
 type badWriter struct {
-	writeCountdown int
+	badLen int
 }
 
 type badError struct {
@@ -166,25 +172,34 @@ const (
 )
 
 func (r *badReader) Read(b []byte) (n int, err error) {
-	r.readCountdown -= len(b)
-	if r.readCountdown <= 0 {
-		return 0, &badError{errRead, r.readCountdown}
+	p, _ := r.br.Seek(0, io.SeekCurrent)
+	if p <= r.errPos && r.errPos < p+int64(len(b)) {
+		n, _ := r.br.Read(b[:r.errPos-p])
+		return n, errors.New(errRead)
 	}
 	return r.br.Read(b)
 }
 
 func (r *badReader) Seek(offset int64, whence int) (int64, error) {
-	if r.seekCountdown <= 0 {
-		return 0, &badError{errSeek, r.seekCountdown}
+	return r.br.Seek(offset, whence)
+}
+
+func (r *badSeeker) Read(b []byte) (n int, err error) {
+	return r.br.Read(b)
+}
+
+func (r *badSeeker) Seek(offset int64, whence int) (int64, error) {
+	if r.errIter <= 0 {
+		return 0, errors.New(errSeek)
 	}
-	r.seekCountdown--
+	r.errIter--
 	return r.br.Seek(offset, whence)
 }
 
 func (r *badWriter) Write(b []byte) (n int, err error) {
-	r.writeCountdown -= len(b)
-	if r.writeCountdown <= 0 {
-		return 0, &badError{errWrite, r.writeCountdown}
+	r.badLen -= len(b)
+	if r.badLen <= 0 {
+		return 0, &badError{errWrite, r.badLen}
 	}
 	return len(b), nil
 }

@@ -1,6 +1,8 @@
 package winres
 
 import (
+	"bytes"
+	"errors"
 	"io"
 
 	"github.com/tc-hib/winres/version"
@@ -278,4 +280,66 @@ func (rs *ResourceSet) firstLang(typeID, resID Identifier) uint16 {
 	re.order()
 
 	return uint16(re.orderedKeys[0])
+}
+
+// LoadFromEXE loads the .rsrc section of the executable and returns a ResourceSet
+func LoadFromEXE(exe io.ReadSeeker) (*ResourceSet, error) {
+	return loadFromEXE(exe, ID(0))
+}
+
+// LoadFromEXESingleType loads the .rsrc section of the executable and returns a ResourceSet
+// containing only resources of one type.
+func LoadFromEXESingleType(exe io.ReadSeeker, typeID Identifier) (*ResourceSet, error) {
+	if typeID == ID(0) {
+		return nil, errors.New(errZeroID)
+	}
+	return loadFromEXE(exe, typeID)
+}
+
+func loadFromEXE(exe io.ReadSeeker, typeID Identifier) (*ResourceSet, error) {
+	rs := &ResourceSet{}
+
+	section, baseAddress, err := extractRSRCSection(exe)
+	if err != nil {
+		if err == ErrNoResources {
+			return rs, err
+		}
+		return nil, err
+	}
+
+	err = rs.read(section, baseAddress, typeID)
+	if err != nil {
+		return nil, err
+	}
+
+	return rs, nil
+}
+
+func (rs *ResourceSet) bytes() ([]byte, []int) {
+	buf := bytes.Buffer{}
+	// ResourceSet.write may only fail on io.Write() calls.
+	// bytes.Buffer.Write never returns an error.
+	reloc, _ := rs.write(&buf)
+	return buf.Bytes(), reloc
+}
+
+// WriteToEXE patches an executable to replace its resources with this ResourceSet.
+//
+// It reads the original file from src and writes the new file to dst.
+//
+// src and dst should not point to a same file/buffer.
+func (rs *ResourceSet) WriteToEXE(dst io.Writer, src io.ReadSeeker) error {
+	data, reloc := rs.bytes()
+	return replaceRSRCSection(dst, src, data, reloc, false)
+}
+
+// WriteToEXEWithCheckSum patches an executable to replace its resources with this ResourceSet.
+//
+// Use this function instead of WriteToEXE if you want the PE checksum to be updated even when
+// the original file didn't have one.
+//
+// If src already had a checksum, WriteToEXE and WriteToEXEWithCheckSum do exactly the same.
+func (rs *ResourceSet) WriteToEXEWithCheckSum(dst io.Writer, src io.ReadSeeker) error {
+	data, reloc := rs.bytes()
+	return replaceRSRCSection(dst, src, data, reloc, true)
 }

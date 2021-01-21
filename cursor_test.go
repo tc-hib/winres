@@ -158,14 +158,10 @@ func TestLoadCUR_ErrSeek(t *testing.T) {
 		t.Fatal("missing test data")
 	}
 
-	r := &badReader{
-		br:            bytes.NewReader(data),
-		seekCountdown: 0,
-		readCountdown: 0xFFFFFF,
-	}
+	r := &badSeeker{br: bytes.NewReader(data)}
 
 	cursor, err := LoadCUR(r)
-	if err == nil || cursor != nil || err.Error() != errSeek+" 0" {
+	if err == nil || cursor != nil || err.Error() != errSeek {
 		t.Fail()
 	}
 }

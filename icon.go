@@ -63,7 +63,7 @@ func NewIconFromResizedImage(img image.Image, sizes []int) (*Icon, error) {
 // LoadICO loads an ICO file and returns an icon, ready to embed in a resource set.
 func LoadICO(ico io.ReadSeeker) (*Icon, error) {
 	hdr := iconDirHeader{}
-	if err := binary.Read(ico, binary.LittleEndian, &hdr); err != nil {
+	if err := binaryRead(ico, &hdr); err != nil {
 		return nil, err
 	}
 
@@ -72,7 +72,7 @@ func LoadICO(ico io.ReadSeeker) (*Icon, error) {
 	}
 
 	entries := make([]iconFileDirEntry, hdr.Count)
-	if err := binary.Read(ico, binary.LittleEndian, entries); err != nil {
+	if err := binaryRead(ico, entries); err != nil {
 		return nil, err
 	}
 
@@ -86,10 +86,7 @@ func LoadICO(ico io.ReadSeeker) (*Icon, error) {
 			return nil, err
 		}
 		img := make([]byte, e.BytesInRes)
-		if _, err := ico.Read(img); err != nil {
-			if err == io.EOF {
-				err = io.ErrUnexpectedEOF
-			}
+		if err := readFull(ico, img); err != nil {
 			return nil, err
 		}
 		icon.images = append(icon.images, iconImage{
@@ -196,7 +193,7 @@ func (rs *ResourceSet) GetIconTranslation(resID Identifier, langID uint16) (*Ico
 
 	in := bytes.NewReader(data)
 	hdr := iconDirHeader{}
-	err := binary.Read(in, binary.LittleEndian, &hdr)
+	err := binaryRead(in, &hdr)
 	if err != nil || hdr.Type != 1 || hdr.Reserved != 0 {
 		return nil, errors.New(errInvalidGroup)
 	}
@@ -204,7 +201,7 @@ func (rs *ResourceSet) GetIconTranslation(resID Identifier, langID uint16) (*Ico
 	icon := &Icon{}
 	for i := 0; i < int(hdr.Count); i++ {
 		entry := iconResDirEntry{}
-		err := binary.Read(in, binary.LittleEndian, &entry)
+		err := binaryRead(in, &entry)
 		if err != nil {
 			return nil, errors.New(errInvalidGroup)
 		}

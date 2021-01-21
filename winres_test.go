@@ -3,8 +3,11 @@ package winres
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -391,4 +394,482 @@ func Test_ResourceSet_firstLang(t *testing.T) {
 	if rs.firstLang(ID(1), ID(2)) != 0 {
 		t.Fail()
 	}
+}
+
+func TestResourceSet_WriteToEXE_VS(t *testing.T) {
+	exe, _ := os.Open(filepath.Join(testDataDir, "vs.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs.Set(Name("AAA"), Name("AAA"), 0x409, []byte{1})
+	ico := loadPNGFileAsIcon(t, "img.png", nil)
+	rs.SetIcon(Name("aAA"), ico)
+	rs.SetIcon(Name("APPICON"), loadICOFile(t, "icon.ico"))
+
+	buf := bytes.Buffer{}
+	err = rs.WriteToEXE(&buf, exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_WriteToEXE_VS0(t *testing.T) {
+	exe, _ := os.Open(filepath.Join(testDataDir, "vs0.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if rs == nil {
+		t.Fatal(err)
+	}
+
+	rs.Set(Name("AAA"), Name("AAA"), 0x409, []byte{1})
+	ico := loadPNGFileAsIcon(t, "img.png", nil)
+	rs.SetIcon(Name("aAA"), ico)
+	rs.SetIcon(Name("APPICON"), loadICOFile(t, "icon.ico"))
+	rs.SetManifest(AppManifest{
+		Identity: AssemblyIdentity{
+			Name:    "Some app",
+			Version: [4]uint16{1, 2, 3, 4},
+		},
+		Description:         "This is an application",
+		SegmentHeap:         true,
+		UseCommonControlsV6: true,
+		Compatibility:       Win81AndAbove,
+		DPIAwareness:        DPIPerMonitorV2,
+	})
+
+	buf := bytes.Buffer{}
+	err = rs.WriteToEXE(&buf, exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_WriteToEXE_VS032(t *testing.T) {
+	exe, _ := os.Open(filepath.Join(testDataDir, "vs032.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if rs == nil {
+		t.Fatal(err)
+	}
+
+	rs.SetManifest(AppManifest{})
+
+	buf := writeSeeker{}
+	err = rs.WriteToEXE(&buf, exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_WriteToEXE_VS32(t *testing.T) {
+	exe, _ := os.Open(filepath.Join(testDataDir, "vs32.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs.SetIcon(Name("APPICON"), loadICOFile(t, "icon.ico"))
+
+	buf := bytes.Buffer{}
+	err = rs.WriteToEXE(&buf, exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_WriteToEXEWithCheckSum_VS32(t *testing.T) {
+	exe, _ := os.Open(filepath.Join(testDataDir, "vs32.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs.SetIcon(Name("APPICON"), loadICOFile(t, "icon.ico"))
+
+	buf := bytes.Buffer{}
+	err = rs.WriteToEXEWithCheckSum(&buf, onlyReadSeeker{exe})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_WriteToEXEWithCheckSum_VS(t *testing.T) {
+	exe, _ := os.Open(filepath.Join(testDataDir, "vs.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs.Set(Name("AAA"), Name("AAA"), 0x409, []byte{1})
+	ico := loadPNGFileAsIcon(t, "img.png", nil)
+	rs.SetIcon(Name("aAA"), ico)
+	rs.SetIcon(Name("APPICON"), loadICOFile(t, "icon.ico"))
+
+	buf := bytes.Buffer{}
+	err = rs.WriteToEXEWithCheckSum(&buf, exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_WriteToEXE_End(t *testing.T) {
+	exe, _ := os.Open(filepath.Join(testDataDir, "end.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs.SetIcon(Name("APPICON"), loadICOFile(t, "icon.ico"))
+
+	buf := bytes.Buffer{}
+	err = rs.WriteToEXE(&buf, exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkBinary(t, buf.Bytes())
+}
+func TestResourceSet_WriteToEXE_NotEnd(t *testing.T) {
+	exe, _ := os.Open(filepath.Join(testDataDir, "notend.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs.SetIcon(Name("APPICON"), loadICOFile(t, "icon.ico"))
+
+	buf := bytes.Buffer{}
+	err = rs.WriteToEXE(&buf, exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkBinary(t, buf.Bytes())
+}
+
+func TestLoadFromEXESingleType(t *testing.T) {
+	exe, err := os.Open(filepath.Join(testDataDir, "rh.exe"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer exe.Close()
+
+	rs, err := LoadFromEXESingleType(exe, RT_GROUP_ICON)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if rs.Count() != 21 || rs.lastIconID != 18 {
+		t.Fail()
+	}
+
+	buf := bytes.Buffer{}
+	rs.WriteObject(&buf, ArchAMD64)
+	checkBinary(t, buf.Bytes())
+}
+
+func TestLoadFromEXESingleType_Err(t *testing.T) {
+	exe, err := os.Open(filepath.Join(testDataDir, "rh.exe"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	exe.Close()
+
+	rs, err := LoadFromEXESingleType(exe, RT_GROUP_ICON)
+	if err == nil || rs != nil {
+		t.Fail()
+	}
+	rs, err = LoadFromEXESingleType(exe, ID(0))
+	if err == nil || rs != nil || err.Error() != errZeroID {
+		t.Fail()
+	}
+
+	exe, err = os.Open(filepath.Join(testDataDir, "invalid_rsrc.exe"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer exe.Close()
+
+	rs, err = LoadFromEXESingleType(exe, RT_GROUP_ICON)
+	if err != io.ErrUnexpectedEOF || rs != nil {
+		t.Fail()
+	}
+}
+
+func TestResourceSet_LoadFromEXE_Err(t *testing.T) {
+	rs, err := LoadFromEXE(bytes.NewReader([]byte{'N', 'Z', 0x40: 0}))
+	if err == nil || rs != nil || err.Error() != errNotPEImage {
+		t.Error(err)
+	}
+
+	rs, err = LoadFromEXE(bytes.NewReader([]byte{'M', 'Z'}))
+	if err != io.ErrUnexpectedEOF || rs != nil {
+		t.Error(err)
+	}
+
+	rs, err = LoadFromEXE(bytes.NewReader([]byte{'M', 'Z'}))
+	if err != io.ErrUnexpectedEOF || rs != nil {
+		t.Error(err)
+	}
+
+	b := loadBinary(t, "vs.exe")
+	b = b[:0x160]
+	rs, err = LoadFromEXE(bytes.NewReader(b))
+	if err != io.ErrUnexpectedEOF || rs != nil {
+		t.Error(err)
+	}
+
+	b = loadBinary(t, "vs.exe")
+	b[0x3C]++ // corrupt offset to PE signature
+	rs, err = LoadFromEXE(bytes.NewReader(b))
+	if err == nil || rs != nil || err.Error() != errNotPEImage {
+		t.Error(err)
+	}
+
+	b = loadBinary(t, "vs.exe")
+	b[0x191] = 0x80 // corrupt resource directory address
+	rs, err = LoadFromEXE(bytes.NewReader(b))
+	if err == nil || rs != nil || err.Error() != errRSRCNotFound {
+		t.Error(err)
+	}
+
+	b = loadBinary(t, "vs.exe")
+	b[0x2B1] = 0x06 // add 0x400 to the size of the resource section
+	rs, err = LoadFromEXE(bytes.NewReader(b))
+	if err == nil || rs != nil || err.Error() != errSectionTooFar {
+		t.Error(err)
+	}
+
+	b = loadBinary(t, "vs.exe")
+	b[0x110]++ // PE magic
+	rs, err = LoadFromEXE(bytes.NewReader(b))
+	if err == nil || rs != nil || err.Error() != errUnknownPE {
+		t.Error(err)
+	}
+	b[0x110]--
+	b[0x111]++
+	rs, err = LoadFromEXE(bytes.NewReader(b))
+	if err == nil || rs != nil || err.Error() != errUnknownPE {
+		t.Error(err)
+	}
+
+	b = loadBinary(t, "vs32.exe")
+	b[0x10C] = 0x5F
+	rs, err = LoadFromEXE(bytes.NewReader(b))
+	if err != io.ErrUnexpectedEOF || rs != nil {
+		t.Error(err)
+	}
+
+	b = loadBinary(t, "vs32.exe")
+	b[0x16C] = 0x05
+	rs, err = LoadFromEXE(bytes.NewReader(b))
+	if err == nil || rs != nil || err.Error() != errUnknownPE {
+		t.Error(err)
+	}
+
+	b = loadBinary(t, "vs32.exe")
+	b[0x10C] = 0xDF
+	rs, err = LoadFromEXE(bytes.NewReader(b))
+	if err == nil || rs != nil || err.Error() != errNotPEImage {
+		t.Error(err)
+	}
+
+	b = loadBinary(t, "vs32.exe")
+	br := badReader{
+		br:     bytes.NewReader(b),
+		errPos: 0x1EF,
+	}
+	rs, err = LoadFromEXE(&br)
+	if err == nil || rs != nil || err.Error() != errRead {
+		t.Error(err)
+	}
+
+	b = loadBinary(t, "vs32.exe")
+	br = badReader{
+		br:     bytes.NewReader(b),
+		errPos: 0x201,
+	}
+	rs, err = LoadFromEXE(&br)
+	if err == nil || rs != nil || err.Error() != errRead {
+		t.Error(err)
+	}
+
+	b = loadBinary(t, "vs0.exe")
+	rs, err = LoadFromEXE(bytes.NewReader(b))
+	if err == nil || rs == nil || rs.types != nil || err.Error() != errNoRSRC {
+		t.Error(err)
+	}
+
+	b = loadBinary(t, "vs.exe")
+	br = badReader{
+		br:     bytes.NewReader(b),
+		errPos: 0x2A60,
+	}
+	rs, err = LoadFromEXE(&br)
+	if err == nil || rs != nil || err.Error() != errRead {
+		t.Error(err)
+	}
+}
+
+func TestResourceSet_WriteToEXE_Err(t *testing.T) {
+	data := loadBinary(t, "vs.exe")
+	data0 := loadBinary(t, "vs0.exe")
+
+	tt := []struct {
+		w       io.Writer
+		data    []byte
+		errMsg  string
+		poke    []poke
+		badSeek int
+	}{
+		{w: &badWriter{252}, data: data, errMsg: errWrite + " 0"},
+		{w: ioutil.Discard, data: data, errMsg: errRSRCTwice, poke: []poke{{off: 0x25D, val: 0x60}}},
+		{w: ioutil.Discard, data: data, errMsg: errRelocTwice, poke: []poke{{off: 0x25D, val: 0x70}}},
+		{w: &writeSeeker{bad: 0xA0}, data: data, errMsg: errWrite},
+		{w: &writeSeeker{bad: 0xFE}, data: data, errMsg: errWrite},
+		{w: &writeSeeker{bad: 0x140}, data: data, errMsg: errWrite},
+		{w: &writeSeeker{bad: 0x180}, data: data, errMsg: errWrite},
+		{w: &writeSeeker{bad: 0x200}, data: data, errMsg: errWrite},
+		{w: &writeSeeker{bad: 0x300}, data: data, errMsg: errWrite},
+		{w: &badWriter{0x300}, data: data, errMsg: errWrite + " -240"},
+		{w: &writeSeeker{bad: 0x27E0}, data: data, errMsg: errWrite},
+		{w: &writeSeeker{bad: 0x2BF8}, data: data0[:0x2B00], errMsg: errWrite, poke: []poke{{off: 0x2A1, val: 0x01}}},
+		{w: &writeSeeker{bad: 0x2A08}, data: data, errMsg: errWrite},
+		{w: &writeSeeker{bad: 0x2A18}, data: data, errMsg: errWrite},
+		{w: &writeSeeker{bad: 0x2C08}, data: data, errMsg: errWrite},
+		{w: ioutil.Discard, data: data, badSeek: 5, errMsg: errSeek},
+		{w: ioutil.Discard, data: data, badSeek: 6, errMsg: errSeek},
+		{w: ioutil.Discard, data: data, badSeek: 7, errMsg: errSeek},
+		{w: ioutil.Discard, data: data, badSeek: 8, errMsg: errSeek},
+		{
+			w:      ioutil.Discard,
+			data:   data0,
+			errMsg: errNoRoomForRSRC,
+			poke: []poke{
+				{off: 0x205, val: 0x02},
+				{off: 0x204, val: 0xB8},
+			},
+		},
+	}
+
+	for i := range tt {
+		rs := ResourceSet{}
+
+		b := append([]byte{}, tt[i].data...)
+		for _, p := range tt[i].poke {
+			b[p.off] = p.val
+		}
+
+		var r io.ReadSeeker = bytes.NewReader(b)
+		if tt[i].badSeek > 0 {
+			r = &badSeeker{
+				br:      bytes.NewReader(b),
+				errIter: tt[i].badSeek,
+			}
+		}
+		err := rs.WriteToEXE(tt[i].w, r)
+
+		if err == nil || err.Error() != tt[i].errMsg {
+			t.Error(i, err, tt[i].errMsg)
+		}
+	}
+}
+
+func TestResourceSet_WriteToEXE_EOF(t *testing.T) {
+	data := loadBinary(t, "vs.exe")
+
+	tt := []struct {
+		data []byte
+	}{
+		{data: []byte{'M', 'Z', 0x3C: 0x40, 0x40: 'P', 'E'}},
+		{data: []byte{'M', 'Z', 0x3C: 0x40, 0x40: 'P', 'E', 0x44: 0}},
+		{data: data[:len(data)-0x1FF]},
+	}
+
+	for i := range tt {
+		rs := ResourceSet{}
+
+		err := rs.WriteToEXE(ioutil.Discard, bytes.NewReader(tt[i].data))
+
+		if err != io.ErrUnexpectedEOF {
+			t.Error(i, err)
+		}
+	}
+}
+
+type onlyReadSeeker struct {
+	io.ReadSeeker
+}
+
+type poke struct {
+	off int
+	val byte
+}
+
+type writeSeeker struct {
+	buf bytes.Buffer
+	pos int64
+	end int64
+	bad int64
+}
+
+func (ws *writeSeeker) Write(data []byte) (int, error) {
+	if ws.bad > 0 && ws.end <= ws.bad && ws.bad < ws.pos+int64(len(data)) {
+		return 0, errors.New(errWrite)
+	}
+	if ws.pos < int64(ws.buf.Len()) {
+		ws.buf.Truncate(int(ws.pos))
+	} else if ws.pos > int64(ws.buf.Len()) {
+		ws.buf.Write(make([]byte, ws.pos-int64(ws.buf.Len())))
+	}
+	n, err := ws.buf.Write(data)
+	ws.pos += int64(n)
+	if ws.end < ws.pos {
+		ws.end = ws.pos
+	}
+	return n, err
+}
+
+func (ws *writeSeeker) Seek(off int64, whence int) (int64, error) {
+	switch whence {
+	case io.SeekStart:
+		ws.pos = off
+	case io.SeekCurrent:
+		ws.pos = int64(ws.buf.Len()) + off
+	case io.SeekEnd:
+		ws.pos = ws.end + off
+	}
+	return ws.pos, nil
+}
+
+func (ws writeSeeker) Bytes() []byte {
+	return ws.buf.Bytes()
 }
