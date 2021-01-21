@@ -321,6 +321,16 @@ func (pew *peWriter) requiresNewSection() bool {
 		pew.roundVirt(pew.relocHdr.VirtualAddress+pew.relocHdr.VirtualSize) >= pew.src.virtEnd {
 		return false
 	}
+
+	// From here, we should not shift data after the existing .rsrc section
+	if pew.rsrcHdr.SizeOfRawData >= uint32(len(pew.rsrcData)) {
+		// The .rsrc section won't grow, so we only have to ensure it won't shrink too much either
+		buf := make([]byte, pew.rsrcHdr.SizeOfRawData)
+		copy(buf, pew.rsrcData)
+		pew.rsrcData = buf
+		return false
+	}
+
 	return true
 }
 

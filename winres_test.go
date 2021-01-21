@@ -803,6 +803,31 @@ func TestResourceSet_WriteToEXE_Err(t *testing.T) {
 	}
 }
 
+func TestResourceSet_WriteToEXE_Delete(t *testing.T) {
+	exe, _ := os.Open(filepath.Join(testDataDir, "notend.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 1; i <= 12; i++ {
+		rs.Set(RT_ICON, ID(i), 0, nil)
+		rs.Set(RT_CURSOR, ID(i), 0, nil)
+	}
+	rs.Set(Name("PNG"), Name("CUR-16X8"), 0, nil)
+	rs.Set(RT_RCDATA, ID(1), 0x409, []byte{})
+
+	buf := bytes.Buffer{}
+	err = rs.WriteToEXE(&buf, exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkBinary(t, buf.Bytes())
+}
+
 func TestResourceSet_WriteToEXE_EOF(t *testing.T) {
 	data := loadBinary(t, "vs.exe")
 
