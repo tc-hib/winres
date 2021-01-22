@@ -397,16 +397,17 @@ const subdirectoryOffset = 0x80000000
 const nameOffset = 0x80000000
 
 func writeDirectoryEntry(w io.Writer, id int, offset int, isName bool, isSubDir bool) error {
-	if isSubDir {
-		offset |= subdirectoryOffset
-	}
-	if isName {
-		id |= nameOffset
-	}
-	return binary.Write(w, binary.LittleEndian, resourceDirectoryIDEntry{
+	e := resourceDirectoryIDEntry{
 		ID:     uint32(id),
 		Offset: uint32(offset),
-	})
+	}
+	if isSubDir {
+		e.Offset |= subdirectoryOffset
+	}
+	if isName {
+		e.ID |= nameOffset
+	}
+	return binary.Write(w, binary.LittleEndian, &e)
 }
 
 type resourceDataEntry struct {
