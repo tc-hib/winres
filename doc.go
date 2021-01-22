@@ -8,9 +8,9 @@
 	and then use the WriteObject method to produce an object file.
 
 	Each resource must be named, so it can later be accessed with FindResource, LoadImage, etc.
-	To name a resource, you may use an int that you cast to ID, or a string that you cast to Name.
+	To name a resource, you may use an int that you cast to winres.ID, or a string that you cast to winres.Name.
 
-	 rs := &winres.ResourceSet{}
+	 rs := winres.ResourceSet{}
 	 rs.Set(winres.RT_RCDATA, winres.Name("MYDATA"), 0, 0, []byte("some data"))
 	 rs.WriteObject(someFile, winres.ArchAMD64)
 	 rs.WriteObject(anotherFile, winres.ArchI386)
@@ -43,7 +43,7 @@
 
 	 func main() {
 	 	// First create an empty resource set
-	 	rs := &winres.ResourceSet{}
+	 	rs := winres.ResourceSet{}
 
 	 	// Make an icon group from a png file
 	 	f, err := os.Open("icon.png")

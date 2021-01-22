@@ -37,7 +37,7 @@ See [Resource Compiler](https://docs.microsoft.com/en-us/windows/win32/menurc/re
 
 ## Usage
 
-To embed resources, you need an `.rsrc` section in your executable. winres provides functions to compile this `.rsrc`
+To embed resources, you need an `.rsrc` section in your executable. Winres provides functions to compile this `.rsrc`
 section into a COFF object file.
 
 Put this file in your project directory, name it "something.syso" or, preferably,
