@@ -828,6 +828,46 @@ func TestResourceSet_WriteToEXE_Delete(t *testing.T) {
 	checkBinary(t, buf.Bytes())
 }
 
+func TestResourceSet_WriteToEXE_SFX(t *testing.T) {
+	// Self extracting archives have data after the last section of the executable
+	exe, _ := os.Open(filepath.Join(testDataDir, "sfx.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Replace file properties
+	vi, err := version.FromBytes(rs.Get(RT_VERSION, ID(1), LCIDDefault))
+	if err != nil {
+		t.Fatal(err)
+	}
+	vi.SetProductVersion("1.0.0.42")
+	vi.Set(LCIDDefault, version.ProductName, "My Archive")
+	vi.Set(LCIDDefault, version.CompanyName, "My Company")
+	vi.Set(LCIDDefault, version.LegalCopyright, "My copyright (but thanks to 7z author)")
+	rs.SetVersionInfo(*vi)
+	// Replace the icon
+	rs.Set(RT_ICON, ID(1), LCIDDefault, nil)
+	rs.Set(RT_ICON, ID(2), LCIDDefault, nil)
+	rs.SetIconTranslation(ID(1), LCIDDefault, loadICOFile(t, "en.ico"))
+	rs.SetIconTranslation(ID(1), 0x40C, loadICOFile(t, "fr.ico"))
+	// Add a manifest for a better GUI on high DPI
+	rs.SetManifest(AppManifest{
+		DPIAwareness:        DPIPerMonitorV2,
+		UseCommonControlsV6: true,
+	})
+
+	buf := bytes.Buffer{}
+	err = rs.WriteToEXE(&buf, exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkBinary(t, buf.Bytes())
+}
+
 func TestResourceSet_WriteToEXE_EOF(t *testing.T) {
 	data := loadBinary(t, "vs.exe")
 
