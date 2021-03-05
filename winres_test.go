@@ -943,6 +943,45 @@ func TestResourceSet_WriteToEXE_EOF(t *testing.T) {
 	}
 }
 
+func TestIsSignedEXE_False(t *testing.T) {
+	f, err := os.Open(filepath.Join(testDataDir, "sfx.exe"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	s, err := IsSignedEXE(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s {
+		t.Fatal("expected IsSignedEXE to return false, got true")
+	}
+}
+
+func TestIsSignedEXE_True(t *testing.T) {
+	f, err := os.Open(filepath.Join(testDataDir, "signed.exe"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	s, err := IsSignedEXE(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !s {
+		t.Fatal("expected IsSignedEXE to return true, got false")
+	}
+}
+
+func TestIsSignedEXE_Error(t *testing.T) {
+	_, err := IsSignedEXE(bytes.NewReader([]byte{'N', 'Z', 0x40: 0}))
+	if err == nil {
+		t.Fatal("expected an error, didn't get one")
+	}
+}
+
 type onlyReadSeeker struct {
 	io.ReadSeeker
 }

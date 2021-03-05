@@ -2,6 +2,7 @@ package winres
 
 import (
 	"bytes"
+	"debug/pe"
 	"errors"
 	"io"
 
@@ -341,4 +342,14 @@ func (rs *ResourceSet) WriteToEXE(dst io.Writer, src io.ReadSeeker, opt ...exeOp
 		o(&options)
 	}
 	return replaceRSRCSection(dst, src, data, reloc, options)
+}
+
+// IsSignedEXE helps knowing if an exe file is signed before encountering and error with WriteToEXE.
+func IsSignedEXE(exe io.ReadSeeker) (bool, error) {
+	exe.Seek(0, io.SeekStart)
+	h, err := readPEHeaders(exe)
+	if err != nil {
+		return false, err
+	}
+	return len(h.dirs) > pe.IMAGE_DIRECTORY_ENTRY_SECURITY && h.dirs[pe.IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress > 0, nil
 }
