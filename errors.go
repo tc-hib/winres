@@ -42,3 +42,6 @@ const (
 
 // ErrNoResources is the error returned by LoadFromEXE when it didn't find a .rsrc section.
 var ErrNoResources = errors.New(errNoRSRC)
+
+// ErrSignedPE is the error returned by WriteToEXE when it refused to touch signed code. (Authenticode)
+var ErrSignedPE = errors.New(errSignedPE)

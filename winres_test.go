@@ -587,8 +587,8 @@ func TestResourceSet_WriteToEXE_SignedErr(t *testing.T) {
 
 	buf := bytes.Buffer{}
 	err = rs.WriteToEXE(&buf, exe)
-	if err == nil || err.Error() != errSignedPE {
-		t.Fatal("expected error:\n", errSignedPE, "\ngot:\n", err)
+	if err != ErrSignedPE {
+		t.Fatal("expected error:\n", ErrSignedPE, "\ngot:\n", err)
 	}
 }
 

@@ -267,7 +267,7 @@ func replaceRSRCSection(dst io.Writer, src io.ReadSeeker, rsrcData []byte, reloc
 			}
 		case IgnoreSignature:
 		default:
-			return errors.New(errSignedPE)
+			return ErrSignedPE
 		}
 	}
 
