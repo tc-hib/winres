@@ -601,6 +601,8 @@ func TestResourceSet_WriteToEXE_IgnoreSignature(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	rs.SetIcon(Name("APPICON"), loadICOFile(t, "icon.ico"))
+
 	buf := bytes.Buffer{}
 	err = rs.WriteToEXE(&buf, exe, WithAuthenticode(IgnoreSignature))
 	if err != nil {

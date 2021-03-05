@@ -249,26 +249,9 @@ type peWriter struct {
 func replaceRSRCSection(dst io.Writer, src io.ReadSeeker, rsrcData []byte, reloc []int, options exeOptions) error {
 	src.Seek(0, io.SeekStart)
 
-	pew, err := preparePEWriter(src, rsrcData)
+	pew, err := preparePEWriter(src, rsrcData, options.authenticodeHandling)
 	if err != nil {
 		return err
-	}
-
-	if len(pew.h.dirs) > pe.IMAGE_DIRECTORY_ENTRY_SECURITY && pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress > 0 {
-		switch options.authenticodeHandling {
-		case RemoveSignature:
-			entry := pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_SECURITY]
-			pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_SECURITY] = pe.DataDirectory{}
-			// The certificate entry actually contains a raw data offset, not a virtual address.
-			// https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#the-attribute-certificate-table-image-only
-			if int64(entry.VirtualAddress)+int64(entry.Size) == pew.src.fileSize {
-				//
-				pew.src.sigSize = pew.src.fileSize - int64(entry.VirtualAddress)
-			}
-		case IgnoreSignature:
-		default:
-			return ErrSignedPE
-		}
 	}
 
 	pew.applyReloc(reloc)
@@ -282,7 +265,7 @@ func replaceRSRCSection(dst io.Writer, src io.ReadSeeker, rsrcData []byte, reloc
 	return pew.writeEXE(dst)
 }
 
-func preparePEWriter(src io.ReadSeeker, rsrcData []byte) (*peWriter, error) {
+func preparePEWriter(src io.ReadSeeker, rsrcData []byte, sigHandling authenticodeHandling) (*peWriter, error) {
 	var (
 		pew peWriter
 		err error
@@ -296,6 +279,22 @@ func preparePEWriter(src io.ReadSeeker, rsrcData []byte) (*peWriter, error) {
 	pew.h, err = readPEHeaders(src)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(pew.h.dirs) > pe.IMAGE_DIRECTORY_ENTRY_SECURITY && pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress > 0 {
+		switch sigHandling {
+		case RemoveSignature:
+			entry := pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_SECURITY]
+			pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_SECURITY] = pe.DataDirectory{}
+			// The certificate entry actually contains a raw data offset, not a virtual address.
+			// https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#the-attribute-certificate-table-image-only
+			if int64(entry.VirtualAddress)+int64(entry.Size) == pew.src.fileSize {
+				pew.src.sigSize = pew.src.fileSize - int64(entry.VirtualAddress)
+			}
+		case IgnoreSignature:
+		default:
+			return nil, ErrSignedPE
+		}
 	}
 
 	err = pew.fillSectionsInfo()
@@ -425,10 +424,14 @@ func (pew *peWriter) updateHeaders() {
 		}
 	}
 
+	if pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress >= pew.src.dataEnd {
+		pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress += lastSection.PointerToRawData + lastSection.SizeOfRawData - pew.src.dataEnd
+	}
+
 	pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress = pew.rsrcHdr.VirtualAddress
 	pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_RESOURCE].Size = rsrcLen
 	for i := range pew.h.dirs {
-		if pew.h.dirs[i].VirtualAddress > pew.rsrcHdr.VirtualAddress {
+		if i != pe.IMAGE_DIRECTORY_ENTRY_SECURITY && pew.h.dirs[i].VirtualAddress > pew.rsrcHdr.VirtualAddress {
 			pew.h.dirs[i].VirtualAddress += virtDelta
 		}
 	}
