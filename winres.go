@@ -328,18 +328,17 @@ func (rs *ResourceSet) bytes() ([]byte, []int) {
 // It reads the original file from src and writes the new file to dst.
 //
 // src and dst should not point to a same file/buffer.
-func (rs *ResourceSet) WriteToEXE(dst io.Writer, src io.ReadSeeker) error {
-	data, reloc := rs.bytes()
-	return replaceRSRCSection(dst, src, data, reloc, false)
-}
-
-// WriteToEXEWithCheckSum patches an executable to replace its resources with this ResourceSet.
 //
-// Use this function instead of WriteToEXE if you want the PE checksum to be updated even when
-// the original file didn't have one.
+// Options:
 //
-// If src already had a checksum, WriteToEXE and WriteToEXEWithCheckSum do exactly the same.
-func (rs *ResourceSet) WriteToEXEWithCheckSum(dst io.Writer, src io.ReadSeeker) error {
+//  ForceCheckSum()         // Forces updating the checksum even when it was not set in the original file
+//  WithAuthenticode(<how>) // Allows updating the .rsrc section despite the file being signed
+//
+func (rs *ResourceSet) WriteToEXE(dst io.Writer, src io.ReadSeeker, opt ...exeOption) error {
 	data, reloc := rs.bytes()
-	return replaceRSRCSection(dst, src, data, reloc, true)
+	options := exeOptions{}
+	for _, o := range opt {
+		o(&options)
+	}
+	return replaceRSRCSection(dst, src, data, reloc, options)
 }

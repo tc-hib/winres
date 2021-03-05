@@ -505,7 +505,7 @@ func TestResourceSet_WriteToEXEWithCheckSum_VS32(t *testing.T) {
 	rs.SetIcon(Name("APPICON"), loadICOFile(t, "icon.ico"))
 
 	buf := bytes.Buffer{}
-	err = rs.WriteToEXEWithCheckSum(&buf, onlyReadSeeker{exe})
+	err = rs.WriteToEXE(&buf, onlyReadSeeker{exe}, ForceCheckSum())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -528,7 +528,7 @@ func TestResourceSet_WriteToEXEWithCheckSum_VS(t *testing.T) {
 	rs.SetIcon(Name("APPICON"), loadICOFile(t, "icon.ico"))
 
 	buf := bytes.Buffer{}
-	err = rs.WriteToEXEWithCheckSum(&buf, exe)
+	err = rs.WriteToEXE(&buf, exe, ForceCheckSum())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -555,6 +555,7 @@ func TestResourceSet_WriteToEXE_End(t *testing.T) {
 
 	checkBinary(t, buf.Bytes())
 }
+
 func TestResourceSet_WriteToEXE_NotEnd(t *testing.T) {
 	exe, _ := os.Open(filepath.Join(testDataDir, "notend.exe"))
 	defer exe.Close()
@@ -568,6 +569,58 @@ func TestResourceSet_WriteToEXE_NotEnd(t *testing.T) {
 
 	buf := bytes.Buffer{}
 	err = rs.WriteToEXE(&buf, exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_WriteToEXE_SignedErr(t *testing.T) {
+	exe, _ := os.Open(filepath.Join(testDataDir, "signed.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := bytes.Buffer{}
+	err = rs.WriteToEXE(&buf, exe)
+	if err == nil || err.Error() != errSignedPE {
+		t.Fatal("expected error:\n", errSignedPE, "\ngot:\n", err)
+	}
+}
+
+func TestResourceSet_WriteToEXE_IgnoreSignature(t *testing.T) {
+	exe, _ := os.Open(filepath.Join(testDataDir, "signed.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := bytes.Buffer{}
+	err = rs.WriteToEXE(&buf, exe, WithAuthenticode(IgnoreSignature))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkBinary(t, buf.Bytes())
+}
+
+func TestResourceSet_WriteToEXE_RemoveSignature(t *testing.T) {
+	exe, _ := os.Open(filepath.Join(testDataDir, "signed.exe"))
+	defer exe.Close()
+
+	rs, err := LoadFromEXE(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := bytes.Buffer{}
+	err = rs.WriteToEXE(&buf, exe, WithAuthenticode(RemoveSignature))
 	if err != nil {
 		t.Fatal(err)
 	}

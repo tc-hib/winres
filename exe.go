@@ -9,6 +9,35 @@ import (
 	"os"
 )
 
+type authenticodeHandling int
+
+const (
+	ErrorIfSigned   authenticodeHandling = 0
+	RemoveSignature authenticodeHandling = 1
+	IgnoreSignature authenticodeHandling = 2
+)
+
+type exeOptions struct {
+	forceCheckSum        bool
+	authenticodeHandling authenticodeHandling
+}
+
+type exeOption func(opt *exeOptions)
+
+// ForceCheckSum forces updating the PE checksum, even when the original file didn't have one
+func ForceCheckSum() exeOption {
+	return func(opt *exeOptions) {
+		opt.forceCheckSum = true
+	}
+}
+
+// WithAuthenticode allows patching signed executables, either by removing the signature or by ignoring it (and making it wrong)
+func WithAuthenticode(handling authenticodeHandling) exeOption {
+	return func(opt *exeOptions) {
+		opt.authenticodeHandling = handling
+	}
+}
+
 type peHeaders struct {
 	file        pe.FileHeader
 	opt         peOptionalHeader
@@ -209,6 +238,7 @@ type peWriter struct {
 	src      struct {
 		r          io.ReadSeeker
 		fileSize   int64
+		sigSize    int64 // size of a code signature we'd want to skip (only if it is at the end of the file)
 		dataOffset uint32
 		dataEnd    uint32
 		virtEnd    uint32
@@ -216,16 +246,34 @@ type peWriter struct {
 	}
 }
 
-func replaceRSRCSection(dst io.Writer, src io.ReadSeeker, rsrcData []byte, reloc []int, forceCheckSum bool) error {
+func replaceRSRCSection(dst io.Writer, src io.ReadSeeker, rsrcData []byte, reloc []int, options exeOptions) error {
 	src.Seek(0, io.SeekStart)
 
 	pew, err := preparePEWriter(src, rsrcData)
 	if err != nil {
 		return err
 	}
+
+	if len(pew.h.dirs) > pe.IMAGE_DIRECTORY_ENTRY_SECURITY && pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress > 0 {
+		switch options.authenticodeHandling {
+		case RemoveSignature:
+			entry := pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_SECURITY]
+			pew.h.dirs[pe.IMAGE_DIRECTORY_ENTRY_SECURITY] = pe.DataDirectory{}
+			// The certificate entry actually contains a raw data offset, not a virtual address.
+			// https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#the-attribute-certificate-table-image-only
+			if int64(entry.VirtualAddress)+int64(entry.Size) == pew.src.fileSize {
+				//
+				pew.src.sigSize = pew.src.fileSize - int64(entry.VirtualAddress)
+			}
+		case IgnoreSignature:
+		default:
+			return errors.New(errSignedPE)
+		}
+	}
+
 	pew.applyReloc(reloc)
 
-	if forceCheckSum || pew.h.hasChecksum {
+	if options.forceCheckSum || pew.h.hasChecksum {
 		c := peCheckSum{}
 		pew.writeEXE(&c)
 		pew.h.opt.setCheckSum(c.Sum())
@@ -485,7 +533,7 @@ func (pew *peWriter) writeEXE(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = io.CopyN(w, pew.src.r, pew.src.fileSize-pew.src.rsrcEnd)
+	_, err = io.CopyN(w, pew.src.r, pew.src.fileSize-pew.src.sigSize-pew.src.rsrcEnd)
 	if err != nil {
 		return err
 	}

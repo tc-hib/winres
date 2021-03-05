@@ -25,6 +25,7 @@ const (
 	errDataEntryOutOfBounds = "data entry out of bounds"
 
 	errNotPEImage    = "not a valid PE image"
+	errSignedPE      = "cannot modify a signed PE image"
 	errUnknownPE     = "unknown PE format"
 	errNoRSRC        = "image doesn't have a resource directory" // This is when the data directory entry is zero
 	errRSRCNotFound  = "resource section not found"              // This is when the data directory entry is not zero
