@@ -966,6 +966,7 @@ func TestIsSignedEXE_True(t *testing.T) {
 	}
 	defer f.Close()
 
+	f.Seek(42, io.SeekStart)
 	s, err := IsSignedEXE(f)
 	if err != nil {
 		t.Fatal(err)
@@ -973,12 +974,22 @@ func TestIsSignedEXE_True(t *testing.T) {
 	if !s {
 		t.Fatal("expected IsSignedEXE to return true, got false")
 	}
+	p, _ := f.Seek(0, io.SeekCurrent)
+	if p != 42 {
+		t.Fatal("expected IsSignedEXE to restore reader's position, but it didn't")
+	}
 }
 
 func TestIsSignedEXE_Error(t *testing.T) {
-	_, err := IsSignedEXE(bytes.NewReader([]byte{'N', 'Z', 0x40: 0}))
+	r := bytes.NewReader([]byte{'N', 'Z', 0x40: 0})
+	r.Seek(2, io.SeekStart)
+	_, err := IsSignedEXE(r)
 	if err == nil {
 		t.Fatal("expected an error, didn't get one")
+	}
+	p, _ := r.Seek(0, io.SeekCurrent)
+	if p != 2 {
+		t.Fatal("expected IsSignedEXE to restore reader's position, but it didn't")
 	}
 }
 

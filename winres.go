@@ -344,10 +344,12 @@ func (rs *ResourceSet) WriteToEXE(dst io.Writer, src io.ReadSeeker, opt ...exeOp
 	return replaceRSRCSection(dst, src, data, reloc, options)
 }
 
-// IsSignedEXE helps knowing if an exe file is signed before encountering and error with WriteToEXE.
+// IsSignedEXE helps knowing if an exe file is signed before encountering an error with WriteToEXE.
 func IsSignedEXE(exe io.ReadSeeker) (bool, error) {
+	pos, _ := exe.Seek(0, io.SeekCurrent)
 	exe.Seek(0, io.SeekStart)
 	h, err := readPEHeaders(exe)
+	exe.Seek(pos, io.SeekStart)
 	if err != nil {
 		return false, err
 	}
