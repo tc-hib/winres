@@ -215,8 +215,8 @@ func TestLoadICO_ErrSeek(t *testing.T) {
 	r := &badSeeker{br: bytes.NewReader(data)}
 
 	icon, err := LoadICO(r)
-	if err == nil || icon != nil || err.Error() != errSeek {
-		t.Fail()
+	if !isExpectedSeekErr(err) || icon != nil {
+		t.Fatal("expected seek error, got", err)
 	}
 }
 
@@ -271,22 +271,22 @@ func TestIcon_SaveICO_ErrWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w := &badWriter{5}
+	w := newBadWriter(5)
 	err = icon.SaveICO(w)
-	if err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if !isExpectedWriteErr(err) {
+		t.Fatal("expected write error, got", err)
 	}
 
-	w = &badWriter{20}
+	w = newBadWriter(20)
 	err = icon.SaveICO(w)
-	if err == nil || err.Error() != errWrite+" -2" {
-		t.Fail()
+	if !isExpectedWriteErr(err) {
+		t.Fatal("expected write error, got", err)
 	}
 
-	w = &badWriter{41885}
+	w = newBadWriter(41885)
 	err = icon.SaveICO(w)
-	if err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if !isExpectedWriteErr(err) {
+		t.Fatal("expected write error, got", err)
 	}
 }
 

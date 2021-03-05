@@ -708,8 +708,8 @@ func TestResourceSet_LoadFromEXE_Err(t *testing.T) {
 		errPos: 0x1EF,
 	}
 	rs, err = LoadFromEXE(&br)
-	if err == nil || rs != nil || err.Error() != errRead {
-		t.Error(err)
+	if !isExpectedReadErr(err) || rs != nil {
+		t.Fatal("expected read error, got", err)
 	}
 
 	b = loadBinary(t, "vs32.exe")
@@ -718,8 +718,8 @@ func TestResourceSet_LoadFromEXE_Err(t *testing.T) {
 		errPos: 0x201,
 	}
 	rs, err = LoadFromEXE(&br)
-	if err == nil || rs != nil || err.Error() != errRead {
-		t.Error(err)
+	if !isExpectedReadErr(err) || rs != nil {
+		t.Fatal("expected read error, got", err)
 	}
 
 	b = loadBinary(t, "vs0.exe")
@@ -734,8 +734,8 @@ func TestResourceSet_LoadFromEXE_Err(t *testing.T) {
 		errPos: 0x2A60,
 	}
 	rs, err = LoadFromEXE(&br)
-	if err == nil || rs != nil || err.Error() != errRead {
-		t.Error(err)
+	if !isExpectedReadErr(err) || rs != nil {
+		t.Fatal("expected read error, got", err)
 	}
 }
 
@@ -750,7 +750,7 @@ func TestResourceSet_WriteToEXE_Err(t *testing.T) {
 		poke    []poke
 		badSeek int
 	}{
-		{w: &badWriter{252}, data: data, errMsg: errWrite + " 0"},
+		{w: newBadWriter(252), data: data, errMsg: errWrite},
 		{w: ioutil.Discard, data: data, errMsg: errRSRCTwice, poke: []poke{{off: 0x25D, val: 0x60}}},
 		{w: ioutil.Discard, data: data, errMsg: errRelocTwice, poke: []poke{{off: 0x25D, val: 0x70}}},
 		{w: &writeSeeker{bad: 0xA0}, data: data, errMsg: errWrite},
@@ -759,7 +759,7 @@ func TestResourceSet_WriteToEXE_Err(t *testing.T) {
 		{w: &writeSeeker{bad: 0x180}, data: data, errMsg: errWrite},
 		{w: &writeSeeker{bad: 0x200}, data: data, errMsg: errWrite},
 		{w: &writeSeeker{bad: 0x300}, data: data, errMsg: errWrite},
-		{w: &badWriter{0x300}, data: data, errMsg: errWrite + " -240"},
+		{w: newBadWriter(0x300), data: data, errMsg: errWrite},
 		{w: &writeSeeker{bad: 0x27E0}, data: data, errMsg: errWrite},
 		{w: &writeSeeker{bad: 0x2BF8}, data: data0[:0x2B00], errMsg: errWrite, poke: []poke{{off: 0x2A1, val: 0x01}}},
 		{w: &writeSeeker{bad: 0x2A08}, data: data, errMsg: errWrite},
@@ -798,7 +798,7 @@ func TestResourceSet_WriteToEXE_Err(t *testing.T) {
 		err := rs.WriteToEXE(tt[i].w, r)
 
 		if err == nil || err.Error() != tt[i].errMsg {
-			t.Error(i, err, tt[i].errMsg)
+			t.Error(i, "got:", err, "\nexpected:", tt[i].errMsg)
 		}
 	}
 }

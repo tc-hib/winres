@@ -6,66 +6,66 @@ import (
 )
 
 func Test_writeObject_WriteErrFileHeader(t *testing.T) {
-	bw := &badWriter{19}
+	bw := newBadWriter(19)
 	rs := &ResourceSet{}
 
 	err := writeObject(bw, rs, ArchAMD64)
-	if err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if !isExpectedWriteErr(err) {
+		t.Fatal("expected write error, got", err)
 	}
 }
 
 func Test_writeObject_WriteErrSectionHeader(t *testing.T) {
-	bw := &badWriter{58}
+	bw := newBadWriter(58)
 	rs := &ResourceSet{}
 
 	err := writeObject(bw, rs, ArchAMD64)
-	if err == nil || err.Error() != errWrite+" -2" {
-		t.Fail()
+	if !isExpectedWriteErr(err) {
+		t.Fatal("expected write error, got", err)
 	}
 }
 
 func Test_writeObject_WriteErrReloc(t *testing.T) {
-	bw := &badWriter{165}
+	bw := newBadWriter(165)
 	rs := &ResourceSet{}
 	rs.Set(RT_RCDATA, ID(1), 0, make([]byte, 1))
 
 	err := writeObject(bw, rs, ArchAMD64)
-	if err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if !isExpectedWriteErr(err) {
+		t.Fatal("expected write error, got", err)
 	}
 }
 
 func Test_writeObject_WriteErrSymbol(t *testing.T) {
-	bw := &badWriter{182}
+	bw := newBadWriter(182)
 	rs := &ResourceSet{}
 	rs.Set(RT_RCDATA, ID(1), 0, make([]byte, 1))
 
 	err := writeObject(bw, rs, ArchAMD64)
-	if err == nil || err.Error() != errWrite+" -2" {
-		t.Fail()
+	if !isExpectedWriteErr(err) {
+		t.Fatal("expected write error, got", err)
 	}
 }
 
 func Test_writeObject_WriteErrStringTable(t *testing.T) {
-	bw := &badWriter{185}
+	bw := newBadWriter(185)
 	rs := &ResourceSet{}
 	rs.Set(RT_RCDATA, ID(1), 0, make([]byte, 1))
 
 	err := writeObject(bw, rs, ArchAMD64)
-	if err == nil || err.Error() != errWrite+" -3" {
-		t.Fail()
+	if !isExpectedWriteErr(err) {
+		t.Fatal("expected write error, got", err)
 	}
 }
 
 func Test_writeObject_WriteErrSection(t *testing.T) {
-	bw := &badWriter{61}
+	bw := newBadWriter(61)
 	rs := &ResourceSet{}
 	rs.Set(RT_RCDATA, ID(1), 0, make([]byte, 1))
 
 	err := writeObject(bw, rs, ArchAMD64)
-	if err == nil || err.Error() != errWrite+" -15" {
-		t.Fail()
+	if !isExpectedWriteErr(err) {
+		t.Fatal("expected write error, got", err)
 	}
 }
 

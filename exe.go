@@ -604,7 +604,10 @@ func readPEHeaders(r io.ReadSeeker) (*peHeaders, error) {
 	}
 
 	h.hasChecksum = h.opt.getCheckSum() != 0
-	h.length, _ = r.Seek(0, io.SeekCurrent)
+	h.length, err = r.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return nil, err
+	}
 	return &h, nil
 }
 

@@ -3,7 +3,6 @@ package winres
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"image"
 	"image/png"
 	"io"
@@ -143,63 +142,94 @@ func shiftImage(img image.Image, x, y int) image.Image {
 }
 
 type badReader struct {
-	br     *bytes.Reader
-	errPos int64
+	br       *bytes.Reader
+	errPos   int64
+	returned bool
 }
 
 type badSeeker struct {
-	br      *bytes.Reader
-	errIter int
+	br       *bytes.Reader
+	errIter  int
+	returned bool
 }
 
 type badWriter struct {
-	badLen int
+	badLen   int
+	returned bool
 }
 
-type badError struct {
-	f     string
-	count int
-}
-
-func (e *badError) Error() string {
-	return fmt.Sprintf("%s %d", e.f, e.count)
+func newBadWriter(badLen int) *badWriter {
+	return &badWriter{badLen: badLen}
 }
 
 const (
-	errRead  = "read"
-	errSeek  = "seek"
-	errWrite = "write"
+	errRead    = "expected read error"
+	errReadOn  = "reading on after error"
+	errSeek    = "expected seek error"
+	errSeekOn  = "seeking on after error"
+	errWrite   = "expected write error"
+	errWriteOn = "writing on after error"
 )
 
-func (r *badReader) Read(b []byte) (n int, err error) {
+func (r *badReader) Read(b []byte) (int, error) {
+	if r.returned {
+		return 0, errors.New(errReadOn)
+	}
 	p, _ := r.br.Seek(0, io.SeekCurrent)
 	if p <= r.errPos && r.errPos < p+int64(len(b)) {
 		n, _ := r.br.Read(b[:r.errPos-p])
+		r.returned = true
 		return n, errors.New(errRead)
 	}
 	return r.br.Read(b)
 }
 
 func (r *badReader) Seek(offset int64, whence int) (int64, error) {
+	if r.returned {
+		return 0, errors.New(errSeekOn)
+	}
 	return r.br.Seek(offset, whence)
 }
 
-func (r *badSeeker) Read(b []byte) (n int, err error) {
-	return r.br.Read(b)
+func isExpectedReadErr(err error) bool {
+	return err != nil && err.Error() == errRead
 }
 
-func (r *badSeeker) Seek(offset int64, whence int) (int64, error) {
-	if r.errIter <= 0 {
+func (s *badSeeker) Read(b []byte) (int, error) {
+	if s.returned {
+		return 0, errors.New(errReadOn)
+	}
+	return s.br.Read(b)
+}
+
+func (s *badSeeker) Seek(offset int64, whence int) (int64, error) {
+	if s.returned {
+		return 0, errors.New(errSeekOn)
+	}
+	if s.errIter <= 0 {
+		s.returned = true
 		return 0, errors.New(errSeek)
 	}
-	r.errIter--
-	return r.br.Seek(offset, whence)
+	s.errIter--
+	return s.br.Seek(offset, whence)
 }
 
-func (r *badWriter) Write(b []byte) (n int, err error) {
-	r.badLen -= len(b)
-	if r.badLen <= 0 {
-		return 0, &badError{errWrite, r.badLen}
+func isExpectedSeekErr(err error) bool {
+	return err != nil && err.Error() == errSeek
+}
+
+func (w *badWriter) Write(b []byte) (n int, err error) {
+	if w.returned {
+		return 0, errors.New(errWriteOn)
+	}
+	w.badLen -= len(b)
+	if w.badLen <= 0 {
+		w.returned = true
+		return 0, errors.New(errWrite)
 	}
 	return len(b), nil
+}
+
+func isExpectedWriteErr(err error) bool {
+	return err != nil && err.Error() == errWrite
 }

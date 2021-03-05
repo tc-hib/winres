@@ -161,8 +161,8 @@ func TestLoadCUR_ErrSeek(t *testing.T) {
 	r := &badSeeker{br: bytes.NewReader(data)}
 
 	cursor, err := LoadCUR(r)
-	if err == nil || cursor != nil || err.Error() != errSeek {
-		t.Fail()
+	if !isExpectedSeekErr(err) || cursor != nil {
+		t.Fatal("expected seek error, got", err)
 	}
 }
 
@@ -233,22 +233,22 @@ func TestCursor_SaveCUR_ErrWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w := &badWriter{5}
+	w := newBadWriter(5)
 	err = cursor.SaveCUR(w)
-	if err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if !isExpectedWriteErr(err) {
+		t.Fatal("expected write error, got", err)
 	}
 
-	w = &badWriter{20}
+	w = newBadWriter(20)
 	err = cursor.SaveCUR(w)
-	if err == nil || err.Error() != errWrite+" -2" {
-		t.Fail()
+	if !isExpectedWriteErr(err) {
+		t.Fatal("expected write error, got", err)
 	}
 
-	w = &badWriter{9190}
+	w = newBadWriter(9190)
 	err = cursor.SaveCUR(w)
-	if err == nil || err.Error() != errWrite+" -200000" {
-		t.Fail()
+	if !isExpectedWriteErr(err) {
+		t.Fatal("expected write error, got", err)
 	}
 }
 

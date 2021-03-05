@@ -9,51 +9,52 @@ import (
 func Test_ResourceSet_write_WriteErr(t *testing.T) {
 	rs := ResourceSet{}
 	rs.Set(Name("NAME"), Name("NAME"), 0, make([]byte, 6))
+	const writeErrMsg = "expected write error, got"
 
-	if _, err := rs.write(&badWriter{15}); err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if _, err := rs.write(newBadWriter(15)); !isExpectedWriteErr(err) {
+		t.Fatal(writeErrMsg, err)
 	}
 
-	if _, err := rs.write(&badWriter{23}); err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if _, err := rs.write(newBadWriter(23)); !isExpectedWriteErr(err) {
+		t.Fatal(writeErrMsg, err)
 	}
 
-	if _, err := rs.write(&badWriter{39}); err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if _, err := rs.write(newBadWriter(39)); !isExpectedWriteErr(err) {
+		t.Fatal(writeErrMsg, err)
 	}
 
-	if _, err := rs.write(&badWriter{47}); err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if _, err := rs.write(newBadWriter(47)); !isExpectedWriteErr(err) {
+		t.Fatal(writeErrMsg, err)
 	}
 
-	if _, err := rs.write(&badWriter{63}); err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if _, err := rs.write(newBadWriter(63)); !isExpectedWriteErr(err) {
+		t.Fatal(writeErrMsg, err)
 	}
 
-	if _, err := rs.write(&badWriter{71}); err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if _, err := rs.write(newBadWriter(71)); !isExpectedWriteErr(err) {
+		t.Fatal(writeErrMsg, err)
 	}
 
-	if _, err := rs.write(&badWriter{87}); err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if _, err := rs.write(newBadWriter(87)); !isExpectedWriteErr(err) {
+		t.Fatal(writeErrMsg, err)
 	}
 
-	if _, err := rs.write(&badWriter{103}); err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if _, err := rs.write(newBadWriter(103)); !isExpectedWriteErr(err) {
+		t.Fatal(writeErrMsg, err)
 	}
 
-	if _, err := rs.write(&badWriter{111}); err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if _, err := rs.write(newBadWriter(111)); !isExpectedWriteErr(err) {
+		t.Fatal(writeErrMsg, err)
 	}
 
 	rs.Set(ID(1), ID(1), 0, make([]byte, 6))
 
-	if _, err := rs.write(&badWriter{31}); err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if _, err := rs.write(newBadWriter(31)); !isExpectedWriteErr(err) {
+		t.Fatal(writeErrMsg, err)
 	}
 
-	if _, err := rs.write(&badWriter{79}); err == nil || err.Error() != errWrite+" -1" {
-		t.Fail()
+	if _, err := rs.write(newBadWriter(79)); !isExpectedWriteErr(err) {
+		t.Fatal(writeErrMsg, err)
 	}
 }
 
@@ -89,9 +90,9 @@ func Test_dataEntry_writeData(t *testing.T) {
 		if err != nil || !bytes.Equal(buf.Bytes(), expected[i]) {
 			t.Fail()
 		}
-		err = de.writeData(&badWriter{i - 1})
-		if err == nil || err.Error() != errWrite+" -1" {
-			t.Fail()
+		err = de.writeData(newBadWriter(i - 1))
+		if !isExpectedWriteErr(err) {
+			t.Fatal("expected write error, got", err)
 		}
 	}
 }
