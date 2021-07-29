@@ -12,8 +12,13 @@ import (
 type authenticodeHandling int
 
 const (
-	ErrorIfSigned   authenticodeHandling = 0
+	// ErrorIfSigned means winres won't patch a signed executable.
+	ErrorIfSigned authenticodeHandling = 0
+	// RemoveSignature means winres will patch a signed executable,
+	// and remove the signature.
 	RemoveSignature authenticodeHandling = 1
+	// IgnoreSignature means winres will patch a signed executable,
+	// and leave the now invalid signature as is.
 	IgnoreSignature authenticodeHandling = 2
 )
 
