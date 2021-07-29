@@ -278,8 +278,10 @@ func (icon *Icon) addImage(img image.Image) error {
 		return errors.New(errImageTooBig)
 	}
 
+	img = imageInSquareNRGBA(img, true)
+	bounds = img.Bounds()
 	buf := &bytes.Buffer{}
-	if err := pngEncode(buf, imageInSquareNRGBA(img, true)); err != nil {
+	if err := pngEncode(buf, img); err != nil {
 		return err
 	}
 
