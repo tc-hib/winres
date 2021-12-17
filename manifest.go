@@ -114,22 +114,22 @@ var manifestTemplate = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
       <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">{{.DPIAware}}</dpiAware>
       <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">{{.DPIAwareness}}</dpiAwareness>
       {{- if .AutoElevate}}
-      <autoElevate xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</autoElevate>
+      <autoElevate xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</autoElevate>
       {{- end}}
       {{- if .DisableTheming}}
-      <disableTheming xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</disableTheming>
+      <disableTheming xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</disableTheming>
       {{- end}}
       {{- if .DisableWindowFiltering}}
       <disableWindowFiltering xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</disableWindowFiltering>
       {{- end}}
       {{- if .HighResolutionScrollingAware}}
-      <highResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</highResolutionScrollingAware>
+      <highResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2013/WindowsSettings">true</highResolutionScrollingAware>
       {{- end}}
       {{- if .PrinterDriverIsolation}}
       <printerDriverIsolation xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</printerDriverIsolation>
       {{- end}}
       {{- if .UltraHighResolutionScrollingAware}}
-      <ultraHighResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</ultraHighResolutionScrollingAware>
+      <ultraHighResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2013/WindowsSettings">true</ultraHighResolutionScrollingAware>
       {{- end}}
       {{- if .LongPathAware}}
       <longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">true</longPathAware>
