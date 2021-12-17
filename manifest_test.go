@@ -93,12 +93,12 @@ func Test_makeManifest(t *testing.T) {
     <windowsSettings>
       <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</dpiAware>
       <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">system</dpiAwareness>
-      <autoElevate xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</autoElevate>
-      <disableTheming xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</disableTheming>
+      <autoElevate xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</autoElevate>
+      <disableTheming xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</disableTheming>
       <disableWindowFiltering xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</disableWindowFiltering>
-      <highResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</highResolutionScrollingAware>
+      <highResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2013/WindowsSettings">true</highResolutionScrollingAware>
       <printerDriverIsolation xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</printerDriverIsolation>
-      <ultraHighResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</ultraHighResolutionScrollingAware>
+      <ultraHighResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2013/WindowsSettings">true</ultraHighResolutionScrollingAware>
       <longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">true</longPathAware>
       <gdiScaling xmlns="http://schemas.microsoft.com/SMI/2017/WindowsSettings">true</gdiScaling>
       <heapType xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">SegmentHeap</heapType>
@@ -158,10 +158,10 @@ func Test_makeManifest(t *testing.T) {
     <windowsSettings>
       <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">false</dpiAware>
       <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">unaware</dpiAwareness>
-      <autoElevate xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</autoElevate>
+      <autoElevate xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</autoElevate>
       <disableWindowFiltering xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</disableWindowFiltering>
       <printerDriverIsolation xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</printerDriverIsolation>
-      <ultraHighResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</ultraHighResolutionScrollingAware>
+      <ultraHighResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2013/WindowsSettings">true</ultraHighResolutionScrollingAware>
       <heapType xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">SegmentHeap</heapType>
     </windowsSettings>
   </application>
@@ -217,10 +217,10 @@ func Test_makeManifest(t *testing.T) {
     <windowsSettings>
       <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
       <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">permonitor</dpiAwareness>
-      <autoElevate xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</autoElevate>
-      <disableTheming xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</disableTheming>
+      <autoElevate xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</autoElevate>
+      <disableTheming xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</disableTheming>
       <disableWindowFiltering xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</disableWindowFiltering>
-      <highResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</highResolutionScrollingAware>
+      <highResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2013/WindowsSettings">true</highResolutionScrollingAware>
     </windowsSettings>
   </application>
 
@@ -276,7 +276,7 @@ Description</description>
       <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</dpiAware>
       <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">permonitorv2,system</dpiAwareness>
       <printerDriverIsolation xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</printerDriverIsolation>
-      <ultraHighResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</ultraHighResolutionScrollingAware>
+      <ultraHighResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2013/WindowsSettings">true</ultraHighResolutionScrollingAware>
       <longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">true</longPathAware>
       <gdiScaling xmlns="http://schemas.microsoft.com/SMI/2017/WindowsSettings">true</gdiScaling>
       <heapType xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">SegmentHeap</heapType>
