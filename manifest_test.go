@@ -324,8 +324,7 @@ func TestAppManifestFromXML(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "zero", xml: // language=manifest
-			`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+			name: "zero", xml: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly></assembly>`,
 			want:    AppManifest{DPIAwareness: DPIUnaware},
 			wantErr: false,
@@ -511,8 +510,7 @@ func TestAppManifestFromXML(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "parseError", xml: // language=manifest
-			`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><assembly></assemble>`,
+			name: "parseError", xml: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><assembly></assemble>`,
 			want:    AppManifest{},
 			wantErr: true,
 		},
@@ -830,8 +828,7 @@ func Test_AppManifest_UnmarshalJSON(t *testing.T) {
 			wantErr: errUnknownDPIAwareness,
 		},
 		{
-			json:// language=json
-			`{"":""]`,
+			json:    `{"":""]`,
 			wantErr: "*",
 		},
 		{
