@@ -6,7 +6,6 @@ import (
 	"image"
 	"image/png"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,12 +27,12 @@ func golden(t *testing.T) string {
 
 func checkBinary(t *testing.T, data []byte) {
 	refFile := golden(t)
-	ref, _ := ioutil.ReadFile(refFile)
+	ref, _ := os.ReadFile(refFile)
 
 	if !bytes.Equal(ref, data) {
 		t.Error(t.Name() + " output is different")
 		bugFile := refFile[:len(refFile)-7] + ".bug"
-		err := ioutil.WriteFile(bugFile, data, 0666)
+		err := os.WriteFile(bugFile, data, 0666)
 		if err != nil {
 			t.Error(err)
 			return
@@ -43,7 +42,7 @@ func checkBinary(t *testing.T, data []byte) {
 }
 
 func loadBinary(t *testing.T, filename string) []byte {
-	data, err := ioutil.ReadFile(filepath.Join(testDataDir, filename))
+	data, err := os.ReadFile(filepath.Join(testDataDir, filename))
 	if err != nil {
 		t.Fatal(err)
 	}

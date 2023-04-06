@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -79,7 +78,7 @@ func TestErrors(t *testing.T) {
 		t.Fail()
 	}
 
-	err = r.WriteObject(ioutil.Discard, "*")
+	err = r.WriteObject(io.Discard, "*")
 	if err == nil || err.Error() != errUnknownArch {
 		t.Fail()
 	}
@@ -133,7 +132,7 @@ func TestWinRes2(t *testing.T) {
 
 	r.Set(RT_MANIFEST, ID(1), LCIDDefault, []byte(manifest1))
 
-	j, _ := ioutil.ReadFile(filepath.Join(testDataDir, "vi.json"))
+	j, _ := os.ReadFile(filepath.Join(testDataDir, "vi.json"))
 	v := version.Info{}
 	json.Unmarshal(j, &v)
 	r.SetVersionInfo(v)
@@ -824,8 +823,8 @@ func TestResourceSet_WriteToEXE_Err(t *testing.T) {
 		badSeek int
 	}{
 		{w: newBadWriter(252), data: data, errMsg: errWrite},
-		{w: ioutil.Discard, data: data, errMsg: errRSRCTwice, poke: []poke{{off: 0x25D, val: 0x60}}},
-		{w: ioutil.Discard, data: data, errMsg: errRelocTwice, poke: []poke{{off: 0x25D, val: 0x70}}},
+		{w: io.Discard, data: data, errMsg: errRSRCTwice, poke: []poke{{off: 0x25D, val: 0x60}}},
+		{w: io.Discard, data: data, errMsg: errRelocTwice, poke: []poke{{off: 0x25D, val: 0x70}}},
 		{w: &writeSeeker{bad: 0xA0}, data: data, errMsg: errWrite},
 		{w: &writeSeeker{bad: 0xFE}, data: data, errMsg: errWrite},
 		{w: &writeSeeker{bad: 0x140}, data: data, errMsg: errWrite},
@@ -838,12 +837,12 @@ func TestResourceSet_WriteToEXE_Err(t *testing.T) {
 		{w: &writeSeeker{bad: 0x2A08}, data: data, errMsg: errWrite},
 		{w: &writeSeeker{bad: 0x2A18}, data: data, errMsg: errWrite},
 		{w: &writeSeeker{bad: 0x2C08}, data: data, errMsg: errWrite},
-		{w: ioutil.Discard, data: data, badSeek: 5, errMsg: errSeek},
-		{w: ioutil.Discard, data: data, badSeek: 6, errMsg: errSeek},
-		{w: ioutil.Discard, data: data, badSeek: 7, errMsg: errSeek},
-		{w: ioutil.Discard, data: data, badSeek: 8, errMsg: errSeek},
+		{w: io.Discard, data: data, badSeek: 5, errMsg: errSeek},
+		{w: io.Discard, data: data, badSeek: 6, errMsg: errSeek},
+		{w: io.Discard, data: data, badSeek: 7, errMsg: errSeek},
+		{w: io.Discard, data: data, badSeek: 8, errMsg: errSeek},
 		{
-			w:      ioutil.Discard,
+			w:      io.Discard,
 			data:   data0,
 			errMsg: errNoRoomForRSRC,
 			poke: []poke{
@@ -955,7 +954,7 @@ func TestResourceSet_WriteToEXE_EOF(t *testing.T) {
 	for i := range tt {
 		rs := ResourceSet{}
 
-		err := rs.WriteToEXE(ioutil.Discard, bytes.NewReader(tt[i].data))
+		err := rs.WriteToEXE(io.Discard, bytes.NewReader(tt[i].data))
 
 		if err != io.ErrUnexpectedEOF {
 			t.Error(i, err)
