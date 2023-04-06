@@ -8,12 +8,30 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/tc-hib/winres/version"
 )
+
+func TestMain(m *testing.M) {
+	getTestData()
+	os.Exit(m.Run())
+}
+
+func getTestData() {
+	exec.Command("git", "clone", "https://github.com/tc-hib/winres-testdata.git", "testdata").Run()
+
+	cmd := exec.Command("git", "fetch", "--all")
+	cmd.Dir = "./testdata"
+	cmd.Run()
+
+	cmd = exec.Command("git", "reset", "--hard", "origin/main")
+	cmd.Dir = "./testdata"
+	cmd.Run()
+}
 
 func TestErrors(t *testing.T) {
 	r := &ResourceSet{}
@@ -250,7 +268,7 @@ winres.ID(999) -> 0x0404 -> [4]byte
 	}
 }
 
-//language=manifest
+// language=manifest
 const manifest1 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
 
