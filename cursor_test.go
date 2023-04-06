@@ -5,7 +5,6 @@ import (
 	"errors"
 	"image"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -107,7 +106,7 @@ func TestLoadCUR_ErrEOF2(t *testing.T) {
 }
 
 func TestLoadCUR_ErrImageOffset(t *testing.T) {
-	temp, err := ioutil.ReadFile(filepath.Join(testDataDir, "cursor.cur"))
+	temp, err := os.ReadFile(filepath.Join(testDataDir, "cursor.cur"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +119,7 @@ func TestLoadCUR_ErrImageOffset(t *testing.T) {
 }
 
 func TestLoadCUR_ErrNotCUR(t *testing.T) {
-	temp, err := ioutil.ReadFile(filepath.Join(testDataDir, "cursor.cur"))
+	temp, err := os.ReadFile(filepath.Join(testDataDir, "cursor.cur"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +139,7 @@ func TestLoadCUR_ErrNotCUR(t *testing.T) {
 }
 
 func TestLoadCUR_ErrNotDIB(t *testing.T) {
-	temp, err := ioutil.ReadFile(filepath.Join(testDataDir, "cursor.cur"))
+	temp, err := os.ReadFile(filepath.Join(testDataDir, "cursor.cur"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +152,7 @@ func TestLoadCUR_ErrNotDIB(t *testing.T) {
 }
 
 func TestLoadCUR_ErrSeek(t *testing.T) {
-	data, err := ioutil.ReadFile(filepath.Join(testDataDir, "cursor.cur"))
+	data, err := os.ReadFile(filepath.Join(testDataDir, "cursor.cur"))
 	if err != nil {
 		t.Fatal("missing test data")
 	}
@@ -187,7 +186,7 @@ func TestLoadCUR_ImageLengthLimit(t *testing.T) {
 }
 
 func TestLoadCUR_PNG(t *testing.T) {
-	data, err := ioutil.ReadFile(filepath.Join(testDataDir, "png.cur"))
+	data, err := os.ReadFile(filepath.Join(testDataDir, "png.cur"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +202,7 @@ func TestLoadCUR_PNG(t *testing.T) {
 }
 
 func TestCursor_SaveCUR(t *testing.T) {
-	data, err := ioutil.ReadFile(filepath.Join(testDataDir, "cursor.cur"))
+	data, err := os.ReadFile(filepath.Join(testDataDir, "cursor.cur"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +222,7 @@ func TestCursor_SaveCUR(t *testing.T) {
 }
 
 func TestCursor_SaveCUR_ErrWrite(t *testing.T) {
-	data, err := ioutil.ReadFile(filepath.Join(testDataDir, "cursor.cur"))
+	data, err := os.ReadFile(filepath.Join(testDataDir, "cursor.cur"))
 	if err != nil {
 		t.Fatal(err)
 	}

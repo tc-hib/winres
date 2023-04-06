@@ -1,7 +1,7 @@
 package winres
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 )
 
@@ -70,7 +70,7 @@ func Test_writeObject_WriteErrSection(t *testing.T) {
 }
 
 func Test_writeRelocTable_UnknownArch(t *testing.T) {
-	err := writeRelocTable(ioutil.Discard, 1, "*", []int{1, 2, 3, 4})
+	err := writeRelocTable(io.Discard, 1, "*", []int{1, 2, 3, 4})
 	if err == nil || err.Error() != errUnknownArch {
 		t.Fail()
 	}

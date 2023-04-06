@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -630,12 +630,12 @@ func checkBytes(t *testing.T, vi *Info) {
 	b := vi.Bytes()
 
 	refFile := golden(t)
-	ref, _ := ioutil.ReadFile(refFile)
+	ref, _ := os.ReadFile(refFile)
 
 	if !bytes.Equal(ref, b) {
 		t.Error(t.Name() + " output is different")
 		bugFile := refFile[:len(refFile)-7] + ".bug"
-		err := ioutil.WriteFile(bugFile, b, 0666)
+		err := os.WriteFile(bugFile, b, 0666)
 		if err != nil {
 			t.Error(err)
 			return
@@ -646,7 +646,7 @@ func checkBytes(t *testing.T, vi *Info) {
 
 func loadGolden(t *testing.T) []byte {
 	refFile := golden(t)
-	ref, err := ioutil.ReadFile(refFile)
+	ref, err := os.ReadFile(refFile)
 	if err != nil {
 		t.Error(err)
 		return nil
