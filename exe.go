@@ -346,14 +346,19 @@ func (pew *peWriter) fillSectionsInfo() error {
 	}
 
 	for i := range pew.h.sections {
+		if pew.h.sections[i].VirtualAddress+pew.h.sections[i].VirtualSize > pew.src.virtEnd {
+			pew.src.virtEnd = pew.h.sections[i].VirtualAddress + pew.h.sections[i].VirtualSize
+		}
+		if pew.h.sections[i].Characteristics&pe.IMAGE_SCN_CNT_UNINITIALIZED_DATA != 0 {
+			// Exclude sections containing uninitialized data from file offset
+			// calculations, as they do not occupy any data in the file.
+			continue
+		}
 		if pew.h.sections[i].PointerToRawData < pew.src.dataOffset {
 			pew.src.dataOffset = pew.h.sections[i].PointerToRawData
 		}
 		if pew.h.sections[i].PointerToRawData+pew.h.sections[i].SizeOfRawData > pew.src.dataEnd {
 			pew.src.dataEnd = pew.h.sections[i].PointerToRawData + pew.h.sections[i].SizeOfRawData
-		}
-		if pew.h.sections[i].VirtualAddress+pew.h.sections[i].VirtualSize > pew.src.virtEnd {
-			pew.src.virtEnd = pew.h.sections[i].VirtualAddress + pew.h.sections[i].VirtualSize
 		}
 	}
 	pew.src.virtEnd = pew.roundVirt(pew.src.virtEnd)
