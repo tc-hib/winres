@@ -336,3 +336,24 @@ func (vi *Info) splitLangs() map[uint16]*Info {
 
 	return m
 }
+
+// GetMainTranslation returns the main translation.
+func (lt LangTable) GetMainTranslation() StringTable {
+	main := lt[LangNeutral]
+	if main != nil {
+		return *main
+	}
+
+	main = lt[LangDefault]
+	if main != nil {
+		return *main
+	}
+
+	var lang uint16 = 0xFFFF
+	for k := range lt {
+		if k < lang {
+			lang = k
+		}
+	}
+	return *lt[lang]
+}
