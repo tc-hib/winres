@@ -17,7 +17,7 @@ type jsonFixed struct {
 
 type jsonVersionInfo struct {
 	Fixed *jsonFixed              `json:"fixed,omitempty"`
-	Info  map[string]*stringTable `json:"info,omitempty"`
+	Info  map[string]*StringTable `json:"info,omitempty"`
 }
 
 func (vi *Info) MarshalJSON() ([]byte, error) {
@@ -60,7 +60,7 @@ func (vi *Info) MarshalJSON() ([]byte, error) {
 		jvi.Fixed = &jf
 	}
 
-	jvi.Info = make(map[string]*stringTable)
+	jvi.Info = make(map[string]*StringTable)
 	for k, v := range vi.lt {
 		if v != nil {
 			jvi.Info[fmt.Sprintf("%04X", k)] = v
@@ -99,7 +99,7 @@ func (vi *Info) UnmarshalJSON(b []byte) error {
 		}
 	}
 
-	vi.lt = make(langTable)
+	vi.lt = make(LangTable)
 	for h, v := range jvi.Info {
 		var k uint16
 		_, err := fmt.Sscanf(h, "%X", &k)

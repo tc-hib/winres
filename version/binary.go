@@ -119,7 +119,7 @@ func (vi *Info) fixedFileInfo() _VS_FIXEDFILEINFO {
 	return ffi
 }
 
-func stringFileInfoBytes(lt *langTable) []byte {
+func stringFileInfoBytes(lt *LangTable) []byte {
 	buf := &bytes.Buffer{}
 	for _, langID := range lt.sortedKeys() {
 		b := stringTableBytes(langID, (*lt)[langID])
@@ -128,7 +128,7 @@ func stringFileInfoBytes(lt *langTable) []byte {
 	return nodeBytes(true, stringFileInfo, buf.Bytes(), 0)
 }
 
-func stringTableBytes(langID uint16, strings *stringTable) []byte {
+func stringTableBytes(langID uint16, strings *StringTable) []byte {
 	buf := &bytes.Buffer{}
 	for _, k := range strings.sortedKeys() {
 		b := stringBytes(k, (*strings)[k])
@@ -144,7 +144,7 @@ func stringBytes(key string, value string) []byte {
 	return nodeBytes(true, key, buf.Bytes(), len(wValue))
 }
 
-func varFileInfoBytes(lt *langTable) []byte {
+func varFileInfoBytes(lt *LangTable) []byte {
 	buf := &bytes.Buffer{}
 	var langs []uint32
 	for _, langID := range lt.sortedKeys() {
@@ -200,7 +200,7 @@ func writeStructAligned(buffer *bytes.Buffer, data interface{}) {
 	binary.Write(buffer, binary.LittleEndian, data)
 }
 
-func (st *stringTable) sortedKeys() []string {
+func (st *StringTable) sortedKeys() []string {
 	keys := make([]string, 0, len(*st))
 	for k := range *st {
 		keys = append(keys, k)
@@ -209,7 +209,7 @@ func (st *stringTable) sortedKeys() []string {
 	return keys
 }
 
-func (lt *langTable) sortedKeys() []uint16 {
+func (lt *LangTable) sortedKeys() []uint16 {
 	keys := make([]int, 0, len(*lt))
 	for k := range *lt {
 		keys = append(keys, int(k))
