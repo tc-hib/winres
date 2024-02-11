@@ -54,11 +54,11 @@ func TestInfo_MarshalJSON(t *testing.T) {
 	checkMarshal(t, vi, `{"fixed":{"type":"Unknown"},"info":{"0000":{"CompanyName":"Company name","ProductVersion":"Product version"},"0409":{"CompanyName":"Company name EN"},"040C":{"CompanyName":"Company name FR"}}}`)
 
 	vi.Type = 42
-	vi.lt = langTable{}
+	vi.lt = LangTable{}
 	checkMarshal(t, vi, `{"fixed":{"type":"Unknown"}}`)
 
 	vi.Type = App
-	vi.lt = make(langTable)
+	vi.lt = make(LangTable)
 	checkMarshal(t, vi, `{}`)
 }
 

@@ -50,7 +50,7 @@ type Info struct {
 	Flags          versionFlags
 	Type           fileType
 	Timestamp      time.Time
-	lt             langTable
+	lt             LangTable
 
 	// temporary state
 	pos int
@@ -65,9 +65,34 @@ type versionFlags struct {
 	SpecialBuild bool
 }
 
-type langTable map[uint16]*stringTable
+// LangTable holds different languages.
+type LangTable map[uint16]*StringTable
 
-type stringTable map[string]string
+// StringTable holds key/value metadata.
+type StringTable map[string]string
+
+// Table returns a copy of the language and containing string tables,
+// which hold key/value metadata.
+func (vi *Info) Table() LangTable {
+	if vi == nil || vi.lt == nil {
+		return nil
+	}
+
+	lt := make(LangTable, len(vi.lt))
+	for lang, langST := range vi.lt {
+		var st *StringTable
+		if langST != nil {
+			stm := make(StringTable, len(*langST))
+			for k, v := range *langST {
+				stm[k] = v
+			}
+			st = &stm
+		}
+		lt[lang] = st
+	}
+
+	return lt
+}
 
 // Set sets a key/value pair in the Info structure for a specific locale.
 //
@@ -80,7 +105,7 @@ type stringTable map[string]string
 // langID may also be 0 for neutral.
 func (vi *Info) Set(langID uint16, key string, value string) error {
 	if vi.lt == nil {
-		vi.lt = make(langTable)
+		vi.lt = make(LangTable)
 	}
 	if key == "" {
 		return errors.New(errEmptyKey)
@@ -93,7 +118,7 @@ func (vi *Info) Set(langID uint16, key string, value string) error {
 	}
 	st, ok := vi.lt[langID]
 	if !ok {
-		st = &stringTable{}
+		st = &StringTable{}
 		vi.lt[langID] = st
 	}
 	(*st)[key] = value
@@ -202,10 +227,10 @@ func MergeTranslations(translations map[uint16]*Info) *Info {
 	return vi
 }
 
-func (vi *Info) singleLang() *stringTable {
+func (vi *Info) singleLang() *StringTable {
 	var (
 		seen bool
-		lang *stringTable
+		lang *StringTable
 	)
 
 	for _, st := range vi.lt {
@@ -310,4 +335,25 @@ func (vi *Info) splitLangs() map[uint16]*Info {
 	}
 
 	return m
+}
+
+// GetMainTranslation returns the main translation.
+func (lt LangTable) GetMainTranslation() StringTable {
+	main := lt[LangNeutral]
+	if main != nil {
+		return *main
+	}
+
+	main = lt[LangDefault]
+	if main != nil {
+		return *main
+	}
+
+	var lang uint16 = 0xFFFF
+	for k := range lt {
+		if k < lang {
+			lang = k
+		}
+	}
+	return *lt[lang]
 }
