@@ -376,7 +376,10 @@ func readString(data []byte, pos *int) (string, error) {
 func readStringWithLength(data []byte, pos *int, length int) (string, error) {
 	data = data[*pos:]
 
-	if length == 0 || length > len(data)/2 {
+	if length == 0 {
+		return "", nil
+	}
+	if length < 0 || length > len(data)/2 {
 		return "", errors.New(errInvalidStringLength)
 	}
 
